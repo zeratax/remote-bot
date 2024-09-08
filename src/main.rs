@@ -1,4 +1,6 @@
 mod commands;
+mod configuration;
+mod constants;
 
 use config::Config as AppConfig;
 use serenity::async_trait;
@@ -14,9 +16,6 @@ use warp::Filter;
 
 use crate::configuration::Config;
 
-mod configuration;
-mod constants;
-
 pub struct Handler {
     pub config: Config,
 }
@@ -28,7 +27,6 @@ impl EventHandler for Handler {
             let content = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::run(&command.data.options())),
                 "wallpaper" => {
-                    // Defer the response (acknowledges the interaction and shows a loading state)
                     if let Err(why) = command
                         .create_response(
                             &ctx.http,
@@ -42,7 +40,6 @@ impl EventHandler for Handler {
                         return;
                     }
 
-                    // Perform the actual task
                     let content =
                         commands::wallpaper::run(&command.data.options(), &self.config).await;
 
@@ -132,14 +129,12 @@ async fn main() {
         warp::serve(wallpaper).run(([0, 0, 0, 0], 8000)).await;
     });
 
-    // Configure the client with your Discord bot token.
     let token = &settings.discord_token;
 
     let handler = Handler {
         config: settings.clone(),
     };
 
-    // Build our client.
     let mut client = Client::builder(token, GatewayIntents::empty())
         .event_handler(handler)
         .await
@@ -149,7 +144,7 @@ async fn main() {
         _ = web_server_task => {
             println!("Web server has stopped.");
         },
-        // Finally, start a single shard, and start listening to events.
+        // Start a single shard, and start listening to events.
         //
         // Shards will automatically attempt to reconnect, and will perform exponential backoff until
         // it reconnects.
