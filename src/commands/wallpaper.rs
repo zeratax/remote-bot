@@ -1,6 +1,7 @@
 use crate::commands::util::email;
 use crate::configuration::Config;
 use crate::constants;
+
 use serenity::builder::{CreateCommand, CreateCommandOption};
 use serenity::model::application::{CommandOptionType, ResolvedOption, ResolvedValue};
 use std::path::Path;
@@ -25,8 +26,9 @@ pub async fn run(options: &[ResolvedOption<'_>], config: &Config) -> String {
             }
 
             let subject = "Wallpaper Updated";
-            let body = "New Wallpaper accessible!";
-            if let Err(e) = email::send_email(config, subject, &body).await {
+            let body = "New wallpaper accessible!";
+            let sender = "wallpaper";
+            if let Err(e) = email::send_email(config, &subject, &body, &sender).await {
                 return format!("Error sending email: {}", e);
             }
 
@@ -54,6 +56,7 @@ async fn download_and_save_image(url: &str, path: &Path) -> Result<(), String> {
                 .map_err(|e| format!("Failed to create directory: {}", e))?;
         }
     }
+
     fs::write(path, content)
         .await
         .map_err(|e| format!("Failed to write image to file: {}", e))
