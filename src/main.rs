@@ -9,7 +9,7 @@ use serenity::async_trait;
 use serenity::builder::{
     CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse,
 };
-use serenity::model::application::{Command, Interaction};
+use serenity::model::application::{Command, Interaction, InteractionResponseFlags};
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use tokio::task;
@@ -30,7 +30,8 @@ impl EventHandler for Handler {
                         .create_response(
                             &ctx.http,
                             CreateInteractionResponse::Defer(
-                                CreateInteractionResponseMessage::new(),
+                                CreateInteractionResponseMessage::new()
+                                    .flags(InteractionResponseFlags::EPHEMERAL),
                             ),
                         )
                         .await
@@ -56,7 +57,9 @@ impl EventHandler for Handler {
             };
 
             if let Some(content) = content {
-                let data = CreateInteractionResponseMessage::new().content(content);
+                let data = CreateInteractionResponseMessage::new()
+                    .content(content)
+                    .flags(InteractionResponseFlags::EPHEMERAL);
                 let builder = CreateInteractionResponse::Message(data);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
                     println!("Cannot respond to slash command: {why}");
