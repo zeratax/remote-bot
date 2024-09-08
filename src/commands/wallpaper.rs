@@ -32,7 +32,7 @@ pub async fn run(options: &[ResolvedOption<'_>], config: &Config) -> String {
                 return format!("Error sending email: {}", e);
             }
 
-            return "Wallpaper will soon be changed!".to_string();
+            return "🖼️ Wallpaper will soon be changed!".to_string();
         }
         return "Please upload an image file (not a video or gif)".to_string();
     }

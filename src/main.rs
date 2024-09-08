@@ -69,27 +69,9 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
 
         let bot_id = ready.user.id;
-        let permissions = 0;
-
-        let invite_link = format!(
-            "https://discord.com/oauth2/authorize?client_id={}&scope=bot&permissions={}",
-            bot_id, permissions
-        );
+        let invite_link = format!("https://discord.com/oauth2/authorize?client_id={}", bot_id);
 
         println!("Invite me with this link: {}", invite_link);
-
-        //let guild_id = GuildId::new(1282387391050420324);
-        //
-        //let _ = guild_id
-        //    .set_commands(
-        //        &ctx.http,
-        //        vec![
-        //            commands::alarm::register(),
-        //            commands::ping::register(),
-        //            commands::wallpaper::register(),
-        //        ],
-        //    )
-        //    .await;
 
         let _ = Command::set_global_commands(
             &ctx.http,
