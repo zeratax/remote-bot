@@ -2,9 +2,15 @@ use crate::configuration::Config;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
-pub async fn send_email(config: &Config, subject: &str, body: &str) -> Result<(), String> {
+pub async fn send_email(
+    config: &Config,
+    subject: &str,
+    body: &str,
+    sender: &str,
+) -> Result<(), String> {
+    let sender = format!("{}@{}", sender, config.sender_domain);
     let email = Message::builder()
-        .from(config.sender_email.parse().unwrap())
+        .from(sender.parse().unwrap())
         .to(config.recipient_email.parse().unwrap())
         .subject(subject)
         .body(body.to_string())

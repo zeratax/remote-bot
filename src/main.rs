@@ -2,19 +2,18 @@ mod commands;
 mod configuration;
 mod constants;
 
+use crate::configuration::Config;
+
 use config::Config as AppConfig;
 use serenity::async_trait;
 use serenity::builder::{
     CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse,
 };
-use serenity::model::application::Interaction;
+use serenity::model::application::{Command, Interaction};
 use serenity::model::gateway::Ready;
-use serenity::model::id::GuildId;
 use serenity::prelude::*;
 use tokio::task;
 use warp::Filter;
-
-use crate::configuration::Config;
 
 pub struct Handler {
     pub config: Config,
@@ -52,11 +51,7 @@ impl EventHandler for Handler {
 
                     None
                 }
-                "alarm" => Some(
-                    commands::alarm::run(&command.data.options(), &self.config)
-                        .await
-                        .unwrap(),
-                ),
+                "alarm" => Some(commands::alarm::run(&command.data.options(), &self.config).await),
                 _ => Some("not implemented :(".to_string()),
             };
 
@@ -83,30 +78,28 @@ impl EventHandler for Handler {
 
         println!("Invite me with this link: {}", invite_link);
 
-        let guild_id = GuildId::new(1282387391050420324);
-
-        let _ = guild_id
-            .set_commands(
-                &ctx.http,
-                vec![
-                    commands::alarm::register(),
-                    commands::ping::register(),
-                    commands::wallpaper::register(),
-                ],
-            )
-            .await;
-
-        //let guild_command = Command::set_global_commands(
-        //    &ctx.http,
-        //    vec![
-        //        commands::ping::register(),
-        //        commands::modal::register(),
-        //        commands::wallpaper::register(),
-        //    ],
-        //)
-        //.await;
+        //let guild_id = GuildId::new(1282387391050420324);
         //
-        //println!("I created the following global slash command: {guild_command:#?}");
+        //let _ = guild_id
+        //    .set_commands(
+        //        &ctx.http,
+        //        vec![
+        //            commands::alarm::register(),
+        //            commands::ping::register(),
+        //            commands::wallpaper::register(),
+        //        ],
+        //    )
+        //    .await;
+
+        let _ = Command::set_global_commands(
+            &ctx.http,
+            vec![
+                commands::ping::register(),
+                commands::alarm::register(),
+                commands::wallpaper::register(),
+            ],
+        )
+        .await;
     }
 }
 
@@ -125,8 +118,11 @@ async fn main() {
 
     let web_server_task = task::spawn(async {
         let wallpaper = warp::path("wallpaper").and(warp::fs::file(constants::WALLPAPER_PATH));
+        let alarm = warp::path("alarm").and(warp::fs::file(constants::ALARM_PATH));
 
-        warp::serve(wallpaper).run(([0, 0, 0, 0], 8000)).await;
+        let routes = wallpaper.or(alarm);
+
+        warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
     });
 
     let token = &settings.discord_token;

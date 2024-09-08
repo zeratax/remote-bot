@@ -8,7 +8,7 @@ pub struct Config {
     pub timezone: FixedOffset,
     pub discord_token: String,
     pub recipient_email: String,
-    pub sender_email: String,
+    pub sender_domain: String,
     pub smtp_password: String,
     pub smtp_server: String,
     pub smtp_username: String,
