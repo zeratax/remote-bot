@@ -2,12 +2,17 @@ use crate::commands::util::email;
 use crate::configuration::Config;
 use crate::constants;
 
+use colored::*;
 use serenity::builder::{CreateCommand, CreateCommandOption};
-use serenity::model::application::{CommandOptionType, ResolvedOption, ResolvedValue};
-use std::path::Path;
+use serenity::model::application::{
+    CommandInteraction, CommandOptionType, ResolvedOption, ResolvedValue,
+};
+use std::path::PathBuf;
 use tokio::fs;
+use url::Url;
 
-pub async fn run(options: &[ResolvedOption<'_>], config: &Config) -> String {
+pub async fn run(command: &CommandInteraction, config: &Config) -> String {
+    let options = &command.data.options();
     if let Some(ResolvedOption {
         value: ResolvedValue::Attachment(attachment),
         ..
@@ -19,11 +24,20 @@ pub async fn run(options: &[ResolvedOption<'_>], config: &Config) -> String {
             .unwrap_or("")
             .starts_with("image/")
         {
-            let save_path = Path::new(constants::WALLPAPER_PATH);
+            let saved_path = match download_and_save_image(&attachment.url).await {
+                Ok(path) => match std::fs::canonicalize(&path) {
+                    Ok(absolute_path) => absolute_path,
+                    Err(error) => return format!("Failed to get absolute path: {}", error),
+                },
+                Err(error) => return format!("Failed to save image: {}", error),
+            };
 
-            if let Err(e) = download_and_save_image(&attachment.url, &save_path).await {
-                return format!("Failed to save image: {}", e);
-            }
+            let username = &command.user.name;
+            println!(
+                "{}'s image saved to: {}",
+                username.green(),
+                saved_path.display().to_string().cyan()
+            );
 
             let subject = "Wallpaper Updated";
             let body = "New wallpaper accessible!";
@@ -39,7 +53,16 @@ pub async fn run(options: &[ResolvedOption<'_>], config: &Config) -> String {
     return "Please provide a valid attachment".to_string();
 }
 
-async fn download_and_save_image(url: &str, path: &Path) -> Result<(), String> {
+async fn download_and_save_image(url: &str) -> Result<PathBuf, String> {
+    let parsed_url = Url::parse(url).map_err(|e| format!("Invalid URL: {}", e))?;
+    let filename = parsed_url
+        .path_segments()
+        .and_then(|segments| segments.last())
+        .ok_or_else(|| "Failed to extract filename from URL".to_string())?;
+
+    let save_dir: &PathBuf = &PathBuf::from(constants::WALLPAPER_DIR);
+    let save_path = save_dir.join(filename);
+
     let response = reqwest::get(url)
         .await
         .map_err(|e| format!("Failed to download image: {}", e))?;
@@ -49,17 +72,26 @@ async fn download_and_save_image(url: &str, path: &Path) -> Result<(), String> {
         .await
         .map_err(|e| format!("Failed to read image content: {}", e))?;
 
-    if let Some(dir) = path.parent() {
-        if !fs::try_exists(dir).await.unwrap_or(false) {
-            fs::create_dir_all(dir)
-                .await
-                .map_err(|e| format!("Failed to create directory: {}", e))?;
-        }
+    if !fs::try_exists(save_dir).await.unwrap_or(false) {
+        fs::create_dir_all(save_dir)
+            .await
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    fs::write(path, content)
+    fs::write(&save_path, &content)
         .await
-        .map_err(|e| format!("Failed to write image to file: {}", e))
+        .map_err(|e| format!("Failed to write image to file: {}", e))?;
+
+    let wallpaper_path = &PathBuf::from(constants::WALLPAPER_PATH);
+    fs::copy(&save_path, wallpaper_path).await.map_err(|e| {
+        format!(
+            "Failed to copy image to {}: {}",
+            wallpaper_path.to_str().unwrap(),
+            e
+        )
+    })?;
+
+    Ok(save_path)
 }
 
 pub fn register() -> CreateCommand {
@@ -69,4 +101,9 @@ pub fn register() -> CreateCommand {
             CreateCommandOption::new(CommandOptionType::Attachment, "attachment", "An image")
                 .required(true),
         )
+        .add_integration_type(serenity::all::InstallationContext::Guild)
+        .add_integration_type(serenity::all::InstallationContext::User)
+        .add_context(serenity::all::InteractionContext::Guild)
+        .add_context(serenity::all::InteractionContext::BotDm)
+        .add_context(serenity::all::InteractionContext::PrivateChannel)
 }
