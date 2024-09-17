@@ -12,6 +12,7 @@ use serenity::builder::{
 use serenity::model::application::{Command, Interaction, InteractionResponseFlags};
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
+use std::path::PathBuf;
 use tokio::task;
 use warp::Filter;
 
@@ -40,8 +41,7 @@ impl EventHandler for Handler {
                         return;
                     }
 
-                    let content =
-                        commands::wallpaper::run(&command.data.options(), &self.config).await;
+                    let content = commands::wallpaper::run(&command, &self.config).await;
 
                     if let Err(why) = command
                         .edit_response(&ctx.http, EditInteractionResponse::new().content(content))
@@ -101,8 +101,10 @@ async fn main() {
         .try_deserialize::<Config>()
         .expect("Failed to deserialize settings");
 
+    let wallpaper_path = PathBuf::from(constants::WALLPAPER_PATH);
+
     let web_server_task = task::spawn(async {
-        let wallpaper = warp::path("wallpaper").and(warp::fs::file(constants::WALLPAPER_PATH));
+        let wallpaper = warp::path("wallpaper").and(warp::fs::file(wallpaper_path));
         let alarm = warp::path("alarm").and(warp::fs::file(constants::ALARM_PATH));
 
         let routes = wallpaper.or(alarm);
