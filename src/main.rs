@@ -97,7 +97,7 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
-    let settings = AppConfig::builder()
+    let settings: Config = AppConfig::builder()
         // Add in `./Settings.toml`
         .add_source(config::File::with_name("settings"))
         // Add in settings from the environment (with a prefix of APP)
