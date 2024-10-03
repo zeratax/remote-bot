@@ -4,6 +4,7 @@ mod constants;
 
 use crate::configuration::Config;
 
+use colored::*;
 use config::Config as AppConfig;
 use serenity::async_trait;
 use serenity::builder::{
@@ -24,6 +25,12 @@ pub struct Handler {
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(command) = interaction {
+            let username = &command.user.name;
+            println!(
+                "{} used the {} command",
+                username.green(),
+                command.data.name.as_str().cyan(),
+            );
             let content = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::run(&command.data.options())),
                 "wallpaper" => {
@@ -52,7 +59,7 @@ impl EventHandler for Handler {
 
                     None
                 }
-                "alarm" => Some(commands::alarm::run(&command.data.options(), &self.config).await),
+                "alarm" => Some(commands::alarm::run(&command, &self.config).await),
                 _ => Some("not implemented :(".to_string()),
             };
 
@@ -74,7 +81,7 @@ impl EventHandler for Handler {
         let bot_id = ready.user.id;
         let invite_link = format!("https://discord.com/oauth2/authorize?client_id={}", bot_id);
 
-        println!("Invite me with this link: {}", invite_link);
+        println!("Invite me with this link: {}", invite_link.cyan());
 
         let _ = Command::set_global_commands(
             &ctx.http,
