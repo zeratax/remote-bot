@@ -3,13 +3,16 @@ use crate::configuration::Config;
 use crate::constants;
 
 use chrono::{Duration as ChronoDuration, Utc};
+use colored::*;
 use serenity::all::{ResolvedOption, ResolvedValue};
 use serenity::builder::{CreateCommand, CreateCommandOption};
+use serenity::model::application::CommandInteraction;
 use serenity::model::prelude::CommandOptionType;
 use std::path::Path;
 use tokio::fs;
 
-pub async fn run(options: &[ResolvedOption<'_>], config: &Config) -> String {
+pub async fn run(command: &CommandInteraction, config: &Config) -> String {
+    let options = &command.data.options();
     if let (
         Some(ResolvedOption {
             value: ResolvedValue::Integer(amount),
@@ -41,7 +44,15 @@ pub async fn run(options: &[ResolvedOption<'_>], config: &Config) -> String {
             return format!("Error sending email: {}", e);
         }
 
-        return format!("⏰ Alarm set for localtime: {}", alarm_time.format("%H:%M"));
+        let username = &command.user.name;
+        let alarm_time_formatted = alarm_time.format("%H:%M");
+        println!(
+            "{} set time to: {}",
+            username.green(),
+            alarm_time_formatted.to_string().cyan()
+        );
+
+        return format!("⏰ Alarm set for localtime: {}", alarm_time_formatted);
     }
     "Invalid input! Please provide a valid amount and unit.".to_string()
 }
