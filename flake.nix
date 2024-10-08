@@ -75,10 +75,13 @@
           type = "app";
           program = "${self.packages.${system}.default}/bin/remote-bot";
         };
-
-        nixosModules.default = {
-          config,
+      }
+    )
+    // {
+      nixosModules = {
+        default = {
           lib,
+          config,
           ...
         }: let
           workingDir = "/var/lib/remote-bot";
@@ -86,7 +89,7 @@
           cfg = config.services.remote-bot;
         in {
           options.services.remote-bot = {
-            enable = lib.mkEnableOption "remote-bot";
+            enable = lib.mkEnableOption "Enable the remote-bot service.";
 
             settings = {
               discordToken = lib.mkOption {
@@ -119,7 +122,7 @@
                 default = "+00:00";
               };
               envFile = lib.mkOption {
-                type = lib.types.path;
+                type = lib.types.nullOr lib.types.path;
                 description = "Path to env file containing secrets (optional).";
                 default = null;
               };
@@ -154,48 +157,49 @@
                 ExecStartPre = ''
                   mkdir -p ${workingDir}
                   cat <<EOF > ${settingsFile}
-                  "${
-                    if cfg.settings.discordToken
+                  # Generate settings based on provided options
+                  ${
+                    if cfg.settings.discordToken != null
                     then "discord_token=${cfg.settings.discordToken}"
                     else ""
-                  }"
-                  "${
-                    if cfg.settings.recipientEmail
+                  }
+                  ${
+                    if cfg.settings.recipientEmail != null
                     then "recipient_email=${cfg.settings.recipientEmail}"
                     else ""
-                  }"
-                  "${
-                    if cfg.settings.senderDomain
+                  }
+                  ${
+                    if cfg.settings.senderDomain != null
                     then "sender_domain=${cfg.settings.senderDomain}"
                     else ""
-                  }"
-                  "${
-                    if cfg.settings.smtpPassword
+                  }
+                  ${
+                    if cfg.settings.smtpPassword != null
                     then "smtp_password=${cfg.settings.smtpPassword}"
                     else ""
-                  }"
-                  "${
-                    if cfg.settings.smtpServer
+                  }
+                  ${
+                    if cfg.settings.smtpServer != null
                     then "smtp_server=${cfg.settings.smtpServer}"
                     else ""
-                  }"
-                  "${
-                    if cfg.settings.smtpUsername
+                  }
+                  ${
+                    if cfg.settings.smtpUsername != null
                     then "smtp_username=${cfg.settings.smtpUsername}"
                     else ""
-                  }"
-                  "${
-                    if cfg.settings.timezone
-                    then "discord_token=${cfg.settings.timezone}"
+                  }
+                  ${
+                    if cfg.settings.timezone != null
+                    then "timezone=${cfg.settings.timezone}"
                     else ""
-                  }"
+                  }
                   EOF
                 '';
-                ExecStart = "${self.packages.${system}.default}/bin/remote-bot";
+                ExecStart = "${self.packages.${config.system}.default}/bin/remote-bot";
               };
             };
           };
         };
-      }
-    );
+      };
+    };
 }
