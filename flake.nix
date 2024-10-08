@@ -14,6 +14,7 @@
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = import nixpkgs {inherit system;};
+        lib = pkgs.lib;
         overrides = builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
         libPath = pkgs.lib.makeLibraryPath [
           # load external libraries that you need in your rust project here
@@ -60,10 +61,11 @@
           pname = "remote-bot";
           version = "0.1.0";
 
-          src = builtins.path {
-            path = ./.;
-            name = "remote-bot";
-          };
+          src = lib.sourceFilesBySuffices ./. [
+            "Cargo.lock"
+            "Cargo.toml"
+            ".rs"
+          ];
 
           cargoHash = "sha256-I+uStfLJxwgyrT1RACFalMB1bgd8HPEjlzi2qBJ77Jw=";
 
