@@ -93,44 +93,44 @@
 
             settings = {
               discordToken = lib.mkOption {
-                type = lib.types.str;
+                type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "Discord token";
               };
               recipientEmail = lib.mkOption {
-                type = lib.types.str;
+                type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "Recipient email";
               };
               senderDomain = lib.mkOption {
-                type = lib.types.str;
+                type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "Sender domain";
               };
               smtpPassword = lib.mkOption {
-                type = lib.types.str;
+                type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "SMTP password";
               };
               smtpServer = lib.mkOption {
-                type = lib.types.str;
+                type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "SMTP server";
               };
               smtpUsername = lib.mkOption {
-                type = lib.types.str;
+                type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "SMTP username";
               };
               timezone = lib.mkOption {
-                type = lib.types.str;
-                description = "Timezone";
+                type = lib.types.nullOr lib.types.str;
                 default = null;
+                description = "Timezone";
               };
               envFile = lib.mkOption {
                 type = lib.types.nullOr lib.types.path;
-                description = "Path to env file containing secrets.";
                 default = null;
+                description = "Path to env file containing secrets.";
               };
             };
           };
