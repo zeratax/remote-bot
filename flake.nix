@@ -202,7 +202,7 @@
                     }
                     EOF
                   '';
-                  ExecStart = "${pkgs.remote-bot}/bin/remote-bot";
+                  ExecStart = "${self.packages.${pkgs.system}.default}/bin/remote-bot";
                 }
                 // lib.optionalAttrs (cfg.settings.envFile != null) {EnvironmentFile = cfg.settings.envFile;};
             };
