@@ -207,7 +207,7 @@
 
               preStart = let
                 format = pkgs.formats.toml {};
-                config = format "settings.toml" cfg.settings;
+                config = format.generate "settings.toml" cfg.settings;
               in ''
                 mkdir -p ${workingDir}
                 ln -sf ${config} ${settingsFile}
