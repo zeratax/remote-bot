@@ -142,12 +142,12 @@
               {
                 assertion =
                   lib.any (v: v != null) [
-                    cfg.settings.discordToken
-                    cfg.settings.recipientEmail
-                    cfg.settings.senderDomain
-                    cfg.settings.smtpPassword
-                    cfg.settings.smtpServer
-                    cfg.settings.smtpUsername
+                    cfg.settings.discord_token
+                    cfg.settings.recipient_email
+                    cfg.settings.sender_domain
+                    cfg.settings.smtp_password
+                    cfg.settings.smtp_server
+                    cfg.settings.smtp_username
                     cfg.settings.timezone
                   ]
                   || cfg.environmentFile != null;
