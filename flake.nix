@@ -154,6 +154,13 @@
               }
             ];
 
+            users.users.remote-bot = {
+              description = "User for remote-bot service";
+              home = workingDir;
+              createHome = true;
+              isSystemUser = true;
+            };
+
             systemd.services.remote-bot = {
               description = "Remote Bot Service";
               after = ["network.target"];
@@ -161,8 +168,36 @@
 
               serviceConfig =
                 {
+                  Type = "simple";
+                  User = config.users.users.remote-bot.name;
                   WorkingDirectory = workingDir;
+
                   ExecStart = "${self.packages.${pkgs.system}.default}/bin/remote-bot";
+                  Restart = "on-failure";
+
+                  # Security Hardening
+                  CapabilityBoundingSet = [""];
+                  LockPersonality = true;
+                  NoNewPrivileges = true;
+                  PrivateDevices = true;
+                  PrivateTmp = true;
+                  ProcSubset = "pid";
+                  ProtectClock = true;
+                  ProtectControlGroups = true;
+                  ProtectHome = true;
+                  ProtectHostname = true;
+                  ProtectKernelLogs = true;
+                  ProtectKernelModules = true;
+                  ProtectKernelTunables = true;
+                  ProtectSystem = "strict";
+                  ReadWritePaths = [workingDir];
+                  RemoveIPC = true;
+                  RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
+                  RestrictNamespaces = true;
+                  RestrictRealtime = true;
+                  RestrictSUIDSGID = true;
+                  SystemCallArchitectures = "native";
+                  SystemCallFilter = ["@system-service" "~@resources" "~@privileged"];
                 }
                 // lib.optionalAttrs (cfg.settings.envFile != null) {EnvironmentFile = cfg.settings.envFile;};
 
