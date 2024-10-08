@@ -82,6 +82,7 @@
         default = {
           lib,
           config,
+          pkgs,
           ...
         }: let
           workingDir = "/var/lib/remote-bot";
@@ -201,7 +202,7 @@
                     }
                     EOF
                   '';
-                  ExecStart = "${self.packages.${config.system}.default}/bin/remote-bot";
+                  ExecStart = "${pkgs.remote-bot}/bin/remote-bot";
                 }
                 // lib.optionalAttrs (cfg.settings.envFile != null) {EnvironmentFile = cfg.settings.envFile;};
             };
