@@ -77,123 +77,121 @@
         };
 
         nixosModules.default = {
-          config = {
-            lib,
-            config,
-            ...
-          }: let
-            workingDir = "/var/lib/remote-bot";
-            settingsFile = "${workingDir}/settings.toml";
-            cfg = config.services.remote-bot;
-          in {
-            options.services.remote-bot = {
-              enable = lib.mkEnableOption "remote-bot";
+          config,
+          lib,
+          ...
+        }: let
+          workingDir = "/var/lib/remote-bot";
+          settingsFile = "${workingDir}/settings.toml";
+          cfg = config.services.remote-bot;
+        in {
+          options.services.remote-bot = {
+            enable = lib.mkEnableOption "remote-bot";
 
-              settings = {
-                discordToken = lib.mkOption {
-                  type = lib.types.str;
-                  description = "Discord token";
-                };
-                recipientEmail = lib.mkOption {
-                  type = lib.types.str;
-                  description = "Recipient email";
-                };
-                senderDomain = lib.mkOption {
-                  type = lib.types.str;
-                  description = "Sender domain";
-                };
-                smtpPassword = lib.mkOption {
-                  type = lib.types.str;
-                  description = "SMTP password";
-                };
-                smtpServer = lib.mkOption {
-                  type = lib.types.str;
-                  description = "SMTP server";
-                };
-                smtpUsername = lib.mkOption {
-                  type = lib.types.str;
-                  description = "SMTP username";
-                };
-                timezone = lib.mkOption {
-                  type = lib.types.str;
-                  description = "Timezone";
-                  default = "+00:00";
-                };
-                envFile = lib.mkOption {
-                  type = lib.types.path;
-                  description = "Path to env file containing secrets (optional).";
-                  default = null;
-                };
+            settings = {
+              discordToken = lib.mkOption {
+                type = lib.types.str;
+                description = "Discord token";
+              };
+              recipientEmail = lib.mkOption {
+                type = lib.types.str;
+                description = "Recipient email";
+              };
+              senderDomain = lib.mkOption {
+                type = lib.types.str;
+                description = "Sender domain";
+              };
+              smtpPassword = lib.mkOption {
+                type = lib.types.str;
+                description = "SMTP password";
+              };
+              smtpServer = lib.mkOption {
+                type = lib.types.str;
+                description = "SMTP server";
+              };
+              smtpUsername = lib.mkOption {
+                type = lib.types.str;
+                description = "SMTP username";
+              };
+              timezone = lib.mkOption {
+                type = lib.types.str;
+                description = "Timezone";
+                default = "+00:00";
+              };
+              envFile = lib.mkOption {
+                type = lib.types.path;
+                description = "Path to env file containing secrets (optional).";
+                default = null;
               };
             };
+          };
 
-            config = lib.mkIf cfg.enable {
-              assertions = [
-                {
-                  assertion =
-                    lib.any (v: v != null) [
-                      cfg.settings.discordToken
-                      cfg.settings.recipientEmail
-                      cfg.settings.senderDomain
-                      cfg.settings.smtpPassword
-                      cfg.settings.smtpServer
-                      cfg.settings.smtpUsername
-                      cfg.settings.timezone
-                    ]
-                    || cfg.settings.envFile != null;
-                  message = "All options must be set unless an envFile is specified.";
-                }
-              ];
+          config = lib.mkIf cfg.enable {
+            assertions = [
+              {
+                assertion =
+                  lib.any (v: v != null) [
+                    cfg.settings.discordToken
+                    cfg.settings.recipientEmail
+                    cfg.settings.senderDomain
+                    cfg.settings.smtpPassword
+                    cfg.settings.smtpServer
+                    cfg.settings.smtpUsername
+                    cfg.settings.timezone
+                  ]
+                  || cfg.settings.envFile != null;
+                message = "All options must be set unless an envFile is specified.";
+              }
+            ];
 
-              systemd.services.remote-bot = {
-                description = "Remote Bot Service";
-                after = ["network.target"];
-                wantedBy = ["multi-user.target"];
-                serviceConfig = {
-                  WorkingDirectory = workingDir;
-                  EnvironmentFile = cfg.settings.envFile or null;
-                  ExecStartPre = ''
-                    mkdir -p ${workingDir}
-                    cat <<EOF > ${settingsFile}
-                    "${
-                      if cfg.settings.discordToken
-                      then "discord_token=${cfg.settings.discordToken}"
-                      else ""
-                    }"
-                    "${
-                      if cfg.settings.recipientEmail
-                      then "recipient_email=${cfg.settings.recipientEmail}"
-                      else ""
-                    }"
-                    "${
-                      if cfg.settings.senderDomain
-                      then "sender_domain=${cfg.settings.senderDomain}"
-                      else ""
-                    }"
-                    "${
-                      if cfg.settings.smtpPassword
-                      then "smtp_password=${cfg.settings.smtpPassword}"
-                      else ""
-                    }"
-                    "${
-                      if cfg.settings.smtpServer
-                      then "smtp_server=${cfg.settings.smtpServer}"
-                      else ""
-                    }"
-                    "${
-                      if cfg.settings.smtpUsername
-                      then "smtp_username=${cfg.settings.smtpUsername}"
-                      else ""
-                    }"
-                    "${
-                      if cfg.settings.timezone
-                      then "discord_token=${cfg.settings.timezone}"
-                      else ""
-                    }"
-                    EOF
-                  '';
-                  ExecStart = "${self.packages.${system}.default}/bin/remote-bot";
-                };
+            systemd.services.remote-bot = {
+              description = "Remote Bot Service";
+              after = ["network.target"];
+              wantedBy = ["multi-user.target"];
+              serviceConfig = {
+                WorkingDirectory = workingDir;
+                EnvironmentFile = cfg.settings.envFile or null;
+                ExecStartPre = ''
+                  mkdir -p ${workingDir}
+                  cat <<EOF > ${settingsFile}
+                  "${
+                    if cfg.settings.discordToken
+                    then "discord_token=${cfg.settings.discordToken}"
+                    else ""
+                  }"
+                  "${
+                    if cfg.settings.recipientEmail
+                    then "recipient_email=${cfg.settings.recipientEmail}"
+                    else ""
+                  }"
+                  "${
+                    if cfg.settings.senderDomain
+                    then "sender_domain=${cfg.settings.senderDomain}"
+                    else ""
+                  }"
+                  "${
+                    if cfg.settings.smtpPassword
+                    then "smtp_password=${cfg.settings.smtpPassword}"
+                    else ""
+                  }"
+                  "${
+                    if cfg.settings.smtpServer
+                    then "smtp_server=${cfg.settings.smtpServer}"
+                    else ""
+                  }"
+                  "${
+                    if cfg.settings.smtpUsername
+                    then "smtp_username=${cfg.settings.smtpUsername}"
+                    else ""
+                  }"
+                  "${
+                    if cfg.settings.timezone
+                    then "discord_token=${cfg.settings.timezone}"
+                    else ""
+                  }"
+                  EOF
+                '';
+                ExecStart = "${self.packages.${system}.default}/bin/remote-bot";
               };
             };
           };
