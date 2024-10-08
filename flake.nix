@@ -99,32 +99,32 @@
             };
 
             settings = {
-              discordToken = lib.mkOption {
+              discord_token = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "Discord token";
               };
-              recipientEmail = lib.mkOption {
+              recipient_email = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "Recipient email";
               };
-              senderDomain = lib.mkOption {
+              sender_domain = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "Sender domain";
               };
-              smtpPassword = lib.mkOption {
+              smtp_password = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "SMTP password";
               };
-              smtpServer = lib.mkOption {
+              smtp_server = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "SMTP server";
               };
-              smtpUsername = lib.mkOption {
+              smtp_username = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;
                 description = "SMTP username";
