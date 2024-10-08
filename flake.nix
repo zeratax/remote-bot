@@ -207,7 +207,8 @@
 
               preStart = let
                 format = pkgs.formats.toml {};
-                config = format.generate "settings.toml" cfg.settings;
+                settingsWithOutNull = lib.filterAttrsRecursive (name: value: value != null) cfg.settings;
+                config = format.generate "settings.toml" settingsWithOutNull;
               in ''
                 mkdir -p ${workingDir}
                 ln -sf ${config} ${settingsFile}
