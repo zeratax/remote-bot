@@ -92,6 +92,12 @@
           options.services.remote-bot = {
             enable = lib.mkEnableOption "Enable the remote-bot service.";
 
+            environmentFile = lib.mkOption {
+              type = lib.types.nullOr lib.types.path;
+              default = null;
+              description = "Path to an environment file to keep secrets out of the nix store.";
+            };
+
             settings = {
               discordToken = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
@@ -128,11 +134,6 @@
                 default = null;
                 description = "Timezone";
               };
-              envFile = lib.mkOption {
-                type = lib.types.nullOr lib.types.path;
-                default = null;
-                description = "Path to env file containing secrets.";
-              };
             };
           };
 
@@ -149,8 +150,8 @@
                     cfg.settings.smtpUsername
                     cfg.settings.timezone
                   ]
-                  || cfg.settings.envFile != null;
-                message = "All options must be set unless an envFile is specified.";
+                  || cfg.environmentFile != null;
+                message = "All options must be set unless an environment file is specified.";
               }
             ];
 
@@ -202,47 +203,14 @@
                   SystemCallArchitectures = "native";
                   SystemCallFilter = ["@system-service" "~@resources" "~@privileged"];
                 }
-                // lib.optionalAttrs (cfg.settings.envFile != null) {EnvironmentFile = cfg.settings.envFile;};
+                // lib.optionalAttrs (cfg.environmentFile != null) {EnvironmentFile = cfg.environmentFile;};
 
-              preStart = ''
+              preStart = let
+                format = pkgs.formats.toml {};
+                config = format "settings.toml" cfg.settings;
+              in ''
                 mkdir -p ${workingDir}
-                cat <<EOF > ${settingsFile}
-                ${
-                  if cfg.settings.discordToken != null
-                  then "discord_token=${cfg.settings.discordToken}"
-                  else ""
-                }
-                ${
-                  if cfg.settings.recipientEmail != null
-                  then "recipient_email=${cfg.settings.recipientEmail}"
-                  else ""
-                }
-                ${
-                  if cfg.settings.senderDomain != null
-                  then "sender_domain=${cfg.settings.senderDomain}"
-                  else ""
-                }
-                ${
-                  if cfg.settings.smtpPassword != null
-                  then "smtp_password=${cfg.settings.smtpPassword}"
-                  else ""
-                }
-                ${
-                  if cfg.settings.smtpServer != null
-                  then "smtp_server=${cfg.settings.smtpServer}"
-                  else ""
-                }
-                ${
-                  if cfg.settings.smtpUsername != null
-                  then "smtp_username=${cfg.settings.smtpUsername}"
-                  else ""
-                }
-                ${
-                  if cfg.settings.timezone != null
-                  then "timezone=${cfg.settings.timezone}"
-                  else ""
-                }
-                EOF
+                ln -sf ${config} ${settingsFile}
               '';
             };
           };
