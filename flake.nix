@@ -158,53 +158,54 @@
               description = "Remote Bot Service";
               after = ["network.target"];
               wantedBy = ["multi-user.target"];
+
               serviceConfig =
                 {
                   WorkingDirectory = workingDir;
-                  ExecStartPre = ''
-                    mkdir -p ${workingDir}
-                    cat <<EOF > ${settingsFile}
-                    # Generate settings based on provided options
-                    ${
-                      if cfg.settings.discordToken != null
-                      then "discord_token=${cfg.settings.discordToken}"
-                      else ""
-                    }
-                    ${
-                      if cfg.settings.recipientEmail != null
-                      then "recipient_email=${cfg.settings.recipientEmail}"
-                      else ""
-                    }
-                    ${
-                      if cfg.settings.senderDomain != null
-                      then "sender_domain=${cfg.settings.senderDomain}"
-                      else ""
-                    }
-                    ${
-                      if cfg.settings.smtpPassword != null
-                      then "smtp_password=${cfg.settings.smtpPassword}"
-                      else ""
-                    }
-                    ${
-                      if cfg.settings.smtpServer != null
-                      then "smtp_server=${cfg.settings.smtpServer}"
-                      else ""
-                    }
-                    ${
-                      if cfg.settings.smtpUsername != null
-                      then "smtp_username=${cfg.settings.smtpUsername}"
-                      else ""
-                    }
-                    ${
-                      if cfg.settings.timezone != null
-                      then "timezone=${cfg.settings.timezone}"
-                      else ""
-                    }
-                    EOF
-                  '';
                   ExecStart = "${self.packages.${pkgs.system}.default}/bin/remote-bot";
                 }
                 // lib.optionalAttrs (cfg.settings.envFile != null) {EnvironmentFile = cfg.settings.envFile;};
+
+              preStart = ''
+                mkdir -p ${workingDir}
+                cat <<EOF > ${settingsFile}
+                ${
+                  if cfg.settings.discordToken != null
+                  then "discord_token=${cfg.settings.discordToken}"
+                  else ""
+                }
+                ${
+                  if cfg.settings.recipientEmail != null
+                  then "recipient_email=${cfg.settings.recipientEmail}"
+                  else ""
+                }
+                ${
+                  if cfg.settings.senderDomain != null
+                  then "sender_domain=${cfg.settings.senderDomain}"
+                  else ""
+                }
+                ${
+                  if cfg.settings.smtpPassword != null
+                  then "smtp_password=${cfg.settings.smtpPassword}"
+                  else ""
+                }
+                ${
+                  if cfg.settings.smtpServer != null
+                  then "smtp_server=${cfg.settings.smtpServer}"
+                  else ""
+                }
+                ${
+                  if cfg.settings.smtpUsername != null
+                  then "smtp_username=${cfg.settings.smtpUsername}"
+                  else ""
+                }
+                ${
+                  if cfg.settings.timezone != null
+                  then "timezone=${cfg.settings.timezone}"
+                  else ""
+                }
+                EOF
+              '';
             };
           };
         };
