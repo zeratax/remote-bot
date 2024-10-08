@@ -156,10 +156,12 @@
 
             users.users.remote-bot = {
               description = "User for remote-bot service";
+              group = "remote-bot";
               home = workingDir;
               createHome = true;
               isSystemUser = true;
             };
+            users.groups.remote-bot = {};
 
             systemd.services.remote-bot = {
               description = "Remote Bot Service";
@@ -170,6 +172,7 @@
                 {
                   Type = "simple";
                   User = config.users.users.remote-bot.name;
+                  Group = config.users.users.remote-bot.group;
                   WorkingDirectory = workingDir;
 
                   ExecStart = "${self.packages.${pkgs.system}.default}/bin/remote-bot";
