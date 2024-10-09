@@ -37,14 +37,14 @@ pub async fn run(command: &CommandInteraction, config: &Config) -> String {
             return format!("Error saving alarm: {}", e);
         }
 
+        let username = &command.user.name;
         let subject = "Alarm Created";
-        let body = "New alarm created!";
+        let body = format!("New alarm from {}!", username);
         let sender = "alarm";
         if let Err(e) = email::send_email(config, &subject, &body, &sender).await {
             return format!("Error sending email: {}", e);
         }
 
-        let username = &command.user.name;
         let alarm_time_formatted = alarm_time.format("%H:%M");
         println!(
             "{} set time to: {}",

@@ -32,14 +32,14 @@ pub async fn run(command: &CommandInteraction, config: &Config) -> String {
                 Err(error) => return format!("Failed to save image: {}", error),
             };
 
+            let username = &command.user.name;
             let subject = "Wallpaper Updated";
-            let body = "New wallpaper accessible!";
+            let body = format!("New wallpaper from {}!", username);
             let sender = "wallpaper";
             if let Err(e) = email::send_email(config, &subject, &body, &sender).await {
                 return format!("Error sending email: {}", e);
             }
 
-            let username = &command.user.name;
             println!(
                 "{} set image to: {}",
                 username.green(),
