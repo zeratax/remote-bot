@@ -24,9 +24,20 @@
           buildInputs = with pkgs; [
             clang
             llvmPackages.bintools
-            rustup
-            pkg-config
             openssl
+            pkg-config
+
+            cargo-leptos
+            leptosfmt
+            rustup
+
+            sqlite
+            sqlx-cli
+
+            bun
+            nodePackages.tailwindcss
+            nodePackages.postcss
+            nodePackages.autoprefixer
           ];
 
           RUSTC_VERSION = overrides.toolchain.channel;
@@ -37,6 +48,11 @@
             export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
             export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
             export PKG_CONFIG_PATH=${pkgs.openssl.dev}/lib/pkgconfig:$PKG_CONFIG_PATH
+            export DATABASE_URL=sqlite://wallpapers.db
+
+            if [ -f package.json ] && [ ! -d node_modules ]; then
+              bun install
+            fi
           '';
 
           RUSTFLAGS = builtins.map (a: ''-L ${a}/lib'') [

@@ -1,0 +1,67 @@
+[package]
+name = "remote-bot-app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+remote-bot-shared = { path = "../shared", optional = true }
+chrono = { workspace = true, optional = true }
+codee = "0.3.0"
+leptos = { workspace = true, features = [] }
+leptos-use = { version = "0.15.7", default-features = false, optional = true }
+leptos_meta.workspace = true
+leptos_router.workspace = true
+reactive_graph = "0.1.8"
+serde = { workspace = true }
+sqlx = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+# Optional WebAssembly dependencies
+wasm-bindgen = { version = "0.2", optional = true }  # Core WASM bindings
+js-sys = { version = "0.3", optional = true }         # JS bindings for calling JavaScript functions
+web-sys = { version = "0.3", optional = true, features = ["Notification"] }        # Web platform bindings for working with the browser
+
+# Optional: You can add a wasm runtime for SSR compatibility if needed
+wasm-timer = { version = "0.2", optional = true }  # Optional if you plan to use timers in a WASM environment
+gloo-timers = { version = "0.3.0", optional = true }
+serde_json = "1.0.140"
+
+[features]
+default = ["hydrate"]
+
+# Hydration feature enables WASM functionality (must include features for WASM compatibility)
+hydrate = [
+    "leptos-use",
+    "leptos-use/storage",
+    "leptos-use/use_cookie",
+    "leptos-use/use_preferred_dark",
+    "leptos-use/use_intersection_observer",
+    "leptos-use/use_document",
+    "leptos/hydrate",      # Hydration for Leptos (WASM compatible)
+    "wasm-bindgen",        # Core WASM bindings for JS interaction
+    "js-sys",              # JS bindings for Web APIs (DOM, etc.)
+    "web-sys",             # Web platform bindings to access browser APIs
+    "gloo-timers",
+]
+
+# SSR (Server-Side Rendering) related features
+ssr = [
+    "chrono",
+    "leptos-use",
+    "leptos-use/actix",
+    "leptos-use/ssr",       # SSR for Leptos (on the server-side)
+    "leptos-use/storage",
+    "leptos-use/use_cookie",
+    "leptos-use/use_preferred_dark",
+    "leptos-use/use_intersection_observer",
+    "leptos/ssr",           # SSR capabilities for Leptos (on the server-side)
+    "leptos_meta/ssr",      # SSR meta for Leptos
+    "leptos_router/ssr",    # SSR routing for Leptos
+    "remote-bot-shared",    # Shared library for remote bot (server-side)
+    "sqlx",                 # SQLx support for database operations
+    "tokio",                # Tokio runtime for async operations (server-side)
+]
+
+# Additional dependencies for development and debugging
+[dev-dependencies]
+console_error_panic_hook = "0.1"  # Optionally useful for debugging in WASM

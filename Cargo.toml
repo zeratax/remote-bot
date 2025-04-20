@@ -1,16 +1,39 @@
-[package]
-name = "remote-bot"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+    "crates/app",
+    "crates/front",
+    "crates/shared",
+    "crates/server",
+    "crates/bot"]
+resolver = "2"
 
-[dependencies]
-chrono = { version = "0.4", features = ["serde"] }
-colored = "2.1.0"
-config = "0.14.0"
-lettre = "0.11.8"
-reqwest = { version = "0.12.7", features = ["blocking"] }
-serde = "1.0.210"
-serenity = { version = "0.12.2", features = [ "client", "collector", "unstable_discord_api", "gateway", "model", "rustls_backend"] }
-tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
-url = "2.5.2"
-warp = "0.3.7"
+# need to be applied only to wasm build
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
+
+[workspace.dependencies]
+leptos = { version = "0.7.8", default-features = false }
+leptos_meta = { version = "0.7.8", default-features = false }
+leptos_router = { version = "0.7.8", default-features = false }
+leptos_dom = { version = "0.7.8", default-features = false }
+leptos_actix = { version = "0.7.8" }
+
+serde = { version = "1.0.219", feature = ["derive"] }
+chrono = { version = "0.4.40", features = ["serde"] }
+tokio = { version = "1.40.0", features = ["rt-multi-thread", "macros"] }
+sqlx = { version = "0.8.5", features = ["sqlite", "runtime-tokio-rustls", "chrono", "macros"] }
+config = { version = "0.15.11" }
+
+# See https://github.com/leptos-rs/cargo-leptos for documentation of all the parameters.
+
+# A leptos project defines which workspace members
+# that are used together frontend (lib) & server (bin)
+[[workspace.metadata.leptos]]
+name = "remote-bot"
+bin-package = "remote-bot-server"
+lib-package = "remote-bot-front"
+assets-dir = "assets"
+tailwind-input-file = "assets/styles/index.css"
+site-root = "target/site"

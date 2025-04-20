@@ -2,7 +2,7 @@ use serenity::builder::CreateCommand;
 use serenity::model::application::ResolvedOption;
 
 pub fn run(_options: &[ResolvedOption]) -> String {
-    "Hey, I'm alive!".to_string()
+    "Pong!!".to_string()
 }
 
 pub fn register() -> CreateCommand {

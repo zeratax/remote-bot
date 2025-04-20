@@ -1,6 +1,6 @@
 /target
-data/
 settings*
 result
 
 .direnv/
+*.db
