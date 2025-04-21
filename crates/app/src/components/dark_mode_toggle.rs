@@ -32,9 +32,9 @@ pub fn DarkModeToggle() -> impl IntoView {
         set_cookie.set(Some(!resolved.get()));
     };
 
-    Effect::new(move |_| {
-        set_cookie.set(Some(system_pref.get()));
-    });
+    // Effect::new(move |_| {
+    //     set_cookie.set(Some(system_pref.get()));
+    // });
 
     view! {
         <button

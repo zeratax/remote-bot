@@ -30,14 +30,12 @@
             cargo-leptos
             leptosfmt
             rustup
+            binaryen
 
             sqlite
             sqlx-cli
 
-            bun
-            nodePackages.tailwindcss
-            nodePackages.postcss
-            nodePackages.autoprefixer
+            tailwindcss
           ];
 
           RUSTC_VERSION = overrides.toolchain.channel;
@@ -49,10 +47,6 @@
             export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
             export PKG_CONFIG_PATH=${pkgs.openssl.dev}/lib/pkgconfig:$PKG_CONFIG_PATH
             export DATABASE_URL=sqlite://wallpapers.db
-
-            if [ -f package.json ] && [ ! -d node_modules ]; then
-              bun install
-            fi
           '';
 
           RUSTFLAGS = builtins.map (a: ''-L ${a}/lib'') [
@@ -81,17 +75,35 @@
             "Cargo.lock"
             "Cargo.toml"
             ".rs"
+            "*.css"
           ];
 
-          cargoHash = "sha256-I+uStfLJxwgyrT1RACFalMB1bgd8HPEjlzi2qBJ77Jw=";
+          cargoHash = "sha256-WALecSBjaVb0hteUgUGYYSbt1cKCLgke8WaNRIH4tiM=";
 
-          nativeBuildInputs = [pkgs.openssl pkgs.pkg-config];
+          buildPhase = ''
+            cargo leptos build --release
+          '';
+
+          nativeBuildInputs = [
+            pkgs.openssl
+            pkgs.pkg-config
+            pkgs.cargo-leptos
+            pkgs.lld
+            pkgs.binaryen
+            pkgs.tailwindcss
+          ];
           buildInputs = [pkgs.openssl.dev];
+
+          installPhase = ''
+            install -Dm755 target/release/remote-bot-server $out/bin/remote-bot-server
+            mkdir -p $out/target
+            cp -r target/site $out/target/site
+          '';
         };
 
         apps.default = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/remote-bot";
+          program = "${self.packages.${system}.default}/bin/remote-bot-server";
         };
       }
     )
@@ -194,7 +206,7 @@
                   Group = config.users.users.remote-bot.group;
                   WorkingDirectory = workingDir;
 
-                  ExecStart = "${self.packages.${pkgs.system}.default}/bin/remote-bot";
+                  ExecStart = "${self.packages.${pkgs.system}.default}/bin/remote-bot-server";
                   Restart = "on-failure";
 
                   # Security Hardening
@@ -230,6 +242,10 @@
               in ''
                 mkdir -p ${workingDir}
                 ln -sf ${config} ${settingsFile}
+                # ensure the SQLite DB exists
+                touch ${workingDir}/wallpapers.db``
+                mkdir -p ${workingDir}/target
+                ln -sf ${self.packages.${pkgs.system}.default}/target/site ${workingDir}/target/site
               '';
             };
           };
