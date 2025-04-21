@@ -2,257 +2,284 @@
   description = "A Discord Bot to Remotely Control Different Things";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
-  }:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
-        pkgs = import nixpkgs {inherit system;};
-        lib = pkgs.lib;
-        overrides = builtins.fromTOML (builtins.readFile ./rust-toolchain.toml);
-        libPath = pkgs.lib.makeLibraryPath [
-          # load external libraries that you need in your rust project here
+    rust-overlay,
+    crane,
+    ...
+  }: let
+    workspaceToml = builtins.fromTOML (builtins.readFile "${self}/Cargo.toml");
+    cargoToml = builtins.fromTOML (builtins.readFile "${self}/crates/server/Cargo.toml");
+    name = workspaceToml.workspace.metadata.crane.name;
+    version = cargoToml.package.version;
+  in
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [rust-overlay.overlays.default];
+      };
+      lib = pkgs.lib;
+
+      rustToolchain = (pkgs.rust-bin.fromRustupToolchainFile (self + /rust-toolchain.toml)).override {
+        extensions = ["rust-src" "rust-analyzer" "clippy"];
+      };
+      craneLib = crane.mkLib pkgs;
+
+      unfilteredRoot = ./.;
+      src = lib.fileset.toSource {
+        root = unfilteredRoot;
+        fileset = lib.fileset.unions [
+          ./assets
+          ./migrations
+          (craneLib.fileset.commonCargoSources unfilteredRoot)
         ];
-      in {
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            clang
-            llvmPackages.bintools
-            openssl
-            pkg-config
+      };
 
-            cargo-leptos
-            leptosfmt
-            rustup
-            binaryen
+      tailwindcss = pkgs.nodePackages.tailwindcss.overrideAttrs (_: {
+        plugins = [
+          pkgs.nodePackages."@tailwindcss/aspect-ratio"
+          pkgs.nodePackages."@tailwindcss/forms"
+          pkgs.nodePackages."@tailwindcss/language-server"
+          pkgs.nodePackages."@tailwindcss/line-clamp"
+          pkgs.nodePackages."@tailwindcss/typography"
+        ];
+      });
 
-            sqlite
-            sqlx-cli
-
-            tailwindcss
-          ];
-
-          RUSTC_VERSION = overrides.toolchain.channel;
-
-          LIBCLANG_PATH = pkgs.lib.makeLibraryPath [pkgs.llvmPackages_latest.libclang.lib];
-
-          shellHook = ''
-            export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
-            export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
-            export PKG_CONFIG_PATH=${pkgs.openssl.dev}/lib/pkgconfig:$PKG_CONFIG_PATH
-            export DATABASE_URL=sqlite://wallpapers.db
-          '';
-
-          RUSTFLAGS = builtins.map (a: ''-L ${a}/lib'') [
-            # add libraries here (e.g. pkgs.libvmi)
-          ];
-
-          LD_LIBRARY_PATH = libPath;
-
-          BINDGEN_EXTRA_CLANG_ARGS =
-            (builtins.map (a: ''-I"${a}/include"'') [
-              pkgs.glibc.dev
-              # add dev libraries here (e.g. pkgs.libvmi.dev)
-            ])
-            ++ [
-              ''-I"${pkgs.llvmPackages_latest.libclang.lib}/lib/clang/${pkgs.llvmPackages_latest.libclang.version}/include"''
-              ''-I"${pkgs.glib.dev}/include/glib-2.0"''
-              ''-I${pkgs.glib.out}/lib/glib-2.0/include/''
-            ];
-        };
-
-        packages.default = pkgs.rustPlatform.buildRustPackage {
-          pname = "remote-bot";
-          version = "0.1.0";
-
-          src = lib.sourceFilesBySuffices ./. [
-            "Cargo.lock"
-            "Cargo.toml"
-            ".rs"
-            ".css"
-            ".sql"
-          ];
-
-          cargoHash = "sha256-WALecSBjaVb0hteUgUGYYSbt1cKCLgke8WaNRIH4tiM=";
-
-          buildPhase = ''
-            export DATABASE_URL=sqlite://wallpapers.db
-            touch wallpapers.db
-            sqlx migrate run
-            cargo leptos build --release
-          '';
-
-          nativeBuildInputs = [
+      craneBuild = rec {
+        args = {
+          inherit src name version;
+          buildInputs = [
+            pkgs.binaryen
+            pkgs.cargo-leptos
+            pkgs.libiconv
+            pkgs.lld
             pkgs.openssl
             pkgs.pkg-config
-            pkgs.cargo-leptos
-            pkgs.lld
-            pkgs.binaryen
-            pkgs.tailwindcss
             pkgs.sqlx-cli
+            tailwindcss
           ];
-          buildInputs = [pkgs.openssl.dev];
-
-          installPhase = ''
-            install -Dm755 target/release/remote-bot-server $out/bin/remote-bot-server
-            mkdir -p $out/target
-            cp -r target/site $out/target/site
+          env = {
+            DATABASE_URL = "sqlite://wallpapers.db";
+          };
+          preBuild = ''
+            echo "Running build-time SQLX migrations for schema reflection..."
+            sqlx database setup --source ${src}/migrations
+            echo "Build-time migrations complete."
           '';
         };
+        cargoArtifacts = craneLib.buildDepsOnly args;
+        buildArgs =
+          args
+          // {
+            inherit cargoArtifacts;
+            buildPhaseCargoCommand = "cargo leptos build --release -vvv";
+            cargoTestCommand = "cargo leptos test --release -vvv";
+            nativeBuildInputs = [pkgs.makeWrapper];
+            cargoExtraArgs = "";
+            doNotPostBuildInstallCargoBinaries = true;
+            installPhaseCommand = ''
+              mkdir -p $out/bin
+              cp target/release/${name}-server $out/bin/${name}-server
+              cp -r target/site $out/bin/site
+              wrapProgram $out/bin/${name}-server \
+                --set LEPTOS_SITE_ROOT $out/bin/site
+            '';
+          };
+        package = craneLib.buildPackage buildArgs;
+        check = craneLib.cargoClippy (args
+          // {
+            inherit cargoArtifacts;
+            cargoClippyExtraArgs = "--all-targets --all-features";
+          });
+        doc = craneLib.cargoDoc (args // {inherit cargoArtifacts;});
+      };
 
-        apps.default = {
-          type = "app";
-          program = "${self.packages.${system}.default}/bin/remote-bot-server";
-        };
-      }
-    )
+      devShell = pkgs.mkShell {
+        nativeBuildInputs = [rustToolchain];
+        buildInputs = [
+          pkgs.binaryen
+          pkgs.cargo-leptos
+          pkgs.git
+          pkgs.leptosfmt
+          pkgs.libiconv
+          pkgs.openssl
+          pkgs.pkg-config
+          pkgs.sqlite
+          pkgs.sqlx-cli
+          tailwindcss
+        ];
+        shellHook = ''
+          local flake_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
+          export DATABASE_URL="sqlite://$flake_root/wallpapers.db"
+          export RUST_SRC_PATH="${rustToolchain}/lib/rustlib/src/rust/library"
+        '';
+      };
+    in {
+      apps.default = {
+        type = "app";
+        program = "${self.packages.${system}.default}/bin/${name}-server";
+      };
+      packages.default = craneBuild.package;
+      packages."${name}-doc" = craneBuild.doc;
+      checks."${name}-clippy" = craneBuild.check;
+      devShells.default = devShell;
+    })
     // {
-      nixosModules = {
-        default = {
-          lib,
-          config,
-          pkgs,
-          ...
-        }: let
-          workingDir = "/var/lib/remote-bot";
-          settingsFile = "${workingDir}/settings.toml";
-          cfg = config.services.remote-bot;
-        in {
-          options.services.remote-bot = {
-            enable = lib.mkEnableOption "Enable the remote-bot service.";
-
-            environmentFile = lib.mkOption {
-              type = lib.types.nullOr lib.types.path;
+      nixosModules.default = {
+        lib,
+        config,
+        pkgs,
+        ...
+      }: let
+        workingDir = "/var/lib/remote-bot";
+        runtimeDbPath = "${workingDir}/wallpapers.db";
+        settingsFile = "${workingDir}/settings.toml";
+        cfg = config.services.remote-bot;
+      in {
+        options.services.remote-bot = {
+          enable = lib.mkEnableOption "Enable the remote-bot service.";
+          environmentFile = lib.mkOption {
+            type = lib.types.nullOr lib.types.path;
+            default = null;
+            description = "Path to an environment file to keep secrets out of the nix store.";
+          };
+          address = lib.mkOption {
+            type = lib.types.str;
+            default = "0.0.0.0";
+            description = "Bind address for the HTTP server.";
+          };
+          port = lib.mkOption {
+            type = lib.types.port;
+            default = 3000;
+            description = "Port for the HTTP server.";
+          };
+          settings = {
+            discord_token = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Path to an environment file to keep secrets out of the nix store.";
+              description = "Discord token";
             };
-
-            settings = {
-              discord_token = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
-                default = null;
-                description = "Discord token";
-              };
-              recipient_email = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
-                default = null;
-                description = "Recipient email";
-              };
-              sender_domain = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
-                default = null;
-                description = "Sender domain";
-              };
-              smtp_password = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
-                default = null;
-                description = "SMTP password";
-              };
-              smtp_server = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
-                default = null;
-                description = "SMTP server";
-              };
-              smtp_username = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
-                default = null;
-                description = "SMTP username";
-              };
-              timezone = lib.mkOption {
-                type = lib.types.nullOr lib.types.str;
-                default = null;
-                description = "Timezone";
-              };
+            recipient_email = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "Recipient email";
+            };
+            sender_domain = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "Sender domain";
+            };
+            smtp_password = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "SMTP password";
+            };
+            smtp_server = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "SMTP server";
+            };
+            smtp_username = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "SMTP username";
+            };
+            timezone = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "Timezone";
             };
           };
+        };
 
-          config = lib.mkIf cfg.enable {
-            assertions = [
-              {
-                assertion =
-                  lib.any (v: v != null) [
-                    cfg.settings.discord_token
-                    cfg.settings.recipient_email
-                    cfg.settings.sender_domain
-                    cfg.settings.smtp_password
-                    cfg.settings.smtp_server
-                    cfg.settings.smtp_username
-                    cfg.settings.timezone
-                  ]
-                  || cfg.environmentFile != null;
-                message = "All options must be set unless an environment file is specified.";
-              }
-            ];
+        config = lib.mkIf cfg.enable {
+          assertions = [
+            {
+              assertion =
+                cfg.environmentFile
+                != null
+                || (
+                  cfg.settings.discord_token
+                  != null
+                  && cfg.settings.recipient_email != null
+                  && cfg.settings.sender_domain != null
+                  && cfg.settings.smtp_password != null
+                  && cfg.settings.smtp_server != null
+                  && cfg.settings.smtp_username != null
+                  && cfg.settings.timezone != null
+                );
+              message = "Service remote-bot requires all settings to be explicitly set unless an environmentFile is specified.";
+            }
+          ];
 
-            users.users.remote-bot = {
-              description = "User for remote-bot service";
-              group = "remote-bot";
-              home = workingDir;
-              createHome = true;
-              isSystemUser = true;
+          users.users.remote-bot = {
+            description = "User for remote-bot service";
+            group = "remote-bot";
+            home = workingDir;
+            createHome = true;
+            isSystemUser = true;
+            uid = lib.getAttrFromPath ["remote-bot" "uid"] config.users.users // 990;
+          };
+          users.groups.remote-bot = {gid = lib.getAttrFromPath ["remote-bot" "gid"] config.users.groups // 990;};
+
+          systemd.services.remote-bot = {
+            description = "Remote Bot Service";
+            after = ["network.target"];
+            wantedBy = ["multi-user.target"];
+            serviceConfig = {
+              Type = "simple";
+              User = config.users.users.remote-bot.name;
+              Group = config.users.users.remote-bot.group;
+              WorkingDirectory = workingDir;
+              ExecStart = "${self.packages.${pkgs.system}.default}/bin/${name}-server";
+              Restart = "on-failure";
+              Environment = [
+                "LEPTOS_SITE_ADDR=${cfg.address}:${toString cfg.port}"
+                "DATABASE_URL=sqlite://${runtimeDbPath}"
+              ];
+              inherit (lib.optionalAttrs (cfg.environmentFile != null) {EnvironmentFile = cfg.environmentFile;}) EnvironmentFile;
+
+              CapabilityBoundingSet = [""];
+              LockPersonality = true;
+              NoNewPrivileges = true;
+              PrivateDevices = true;
+              PrivateTmp = true;
+              ProcSubset = "pid";
+              ProtectClock = true;
+              ProtectControlGroups = true;
+              ProtectHome = true;
+              ProtectHostname = true;
+              ProtectKernelLogs = true;
+              ProtectKernelModules = true;
+              ProtectKernelTunables = true;
+              ProtectSystem = "strict";
+              ReadWritePaths = [workingDir];
+              RemoveIPC = true;
+              RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
+              RestrictNamespaces = true;
+              RestrictRealtime = true;
+              RestrictSUIDSGID = true;
+              SystemCallArchitectures = "native";
+              SystemCallFilter = ["@system-service" "~@resources" "~@privileged"];
             };
-            users.groups.remote-bot = {};
-
-            systemd.services.remote-bot = {
-              description = "Remote Bot Service";
-              after = ["network.target"];
-              wantedBy = ["multi-user.target"];
-
-              serviceConfig =
-                {
-                  Type = "simple";
-                  User = config.users.users.remote-bot.name;
-                  Group = config.users.users.remote-bot.group;
-                  WorkingDirectory = workingDir;
-
-                  ExecStart = "${self.packages.${pkgs.system}.default}/bin/remote-bot-server";
-                  Restart = "on-failure";
-
-                  # Security Hardening
-                  CapabilityBoundingSet = [""];
-                  LockPersonality = true;
-                  NoNewPrivileges = true;
-                  PrivateDevices = true;
-                  PrivateTmp = true;
-                  ProcSubset = "pid";
-                  ProtectClock = true;
-                  ProtectControlGroups = true;
-                  ProtectHome = true;
-                  ProtectHostname = true;
-                  ProtectKernelLogs = true;
-                  ProtectKernelModules = true;
-                  ProtectKernelTunables = true;
-                  ProtectSystem = "strict";
-                  ReadWritePaths = [workingDir];
-                  RemoveIPC = true;
-                  RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
-                  RestrictNamespaces = true;
-                  RestrictRealtime = true;
-                  RestrictSUIDSGID = true;
-                  SystemCallArchitectures = "native";
-                  SystemCallFilter = ["@system-service" "~@resources" "~@privileged"];
-                }
-                // lib.optionalAttrs (cfg.environmentFile != null) {EnvironmentFile = cfg.environmentFile;};
-
-              preStart = let
-                format = pkgs.formats.toml {};
-                settingsWithOutNull = lib.filterAttrsRecursive (name: value: value != null) cfg.settings;
-                config = format.generate "settings.toml" settingsWithOutNull;
-              in ''
-                mkdir -p ${workingDir}
-                ln -sf ${config} ${settingsFile}
-                # ensure the SQLite DB exists
-                touch ${workingDir}/wallpapers.db``
-                mkdir -p ${workingDir}/target
-                ln -sf ${self.packages.${pkgs.system}.default}/target/site ${workingDir}/target/site
-              '';
-            };
+            preStart = let
+              format = pkgs.formats.toml {};
+              settingsWithOutNull = lib.filterAttrsRecursive (name: value: value != null) cfg.settings;
+              config = format.generate "settings.toml" settingsWithOutNull;
+            in ''
+              mkdir -p ${workingDir}
+              ln -sf ${config} ${settingsFile}
+              touch ${runtimeDbPath}
+              echo "Starting ${name}-server service..."
+            '';
           };
         };
       };

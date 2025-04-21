@@ -1,12 +1,13 @@
-use std::path::PathBuf;
-
-use crate::commands::util::image::handle_set_wallpaper_from_url;
-use crate::configuration::Config;
-use crate::constants::{self};
-
 use remote_bot_shared::state::AppState;
 use serenity::builder::CreateCommand;
 use serenity::model::application::CommandInteraction;
+use std::path::PathBuf;
+
+use crate::{
+    commands::util::{email::EmailConfig, image::handle_set_wallpaper_from_url},
+    configuration::Config,
+    constants::{self},
+};
 
 pub async fn run(command: &CommandInteraction, config: &Config, app_state: &AppState) -> String {
     fn get_image_url(command: &CommandInteraction) -> Option<&str> {
@@ -36,7 +37,15 @@ pub async fn run(command: &CommandInteraction, config: &Config, app_state: &AppS
     let wallpaper_dir = &PathBuf::from(constants::WALLPAPER_DIR);
     if let Some(url) = get_image_url(command) {
         let set_by = command.user.name.clone();
-        match handle_set_wallpaper_from_url(url, wallpaper_dir, &set_by, app_state, config).await {
+        match handle_set_wallpaper_from_url(
+            url,
+            wallpaper_dir,
+            &set_by,
+            app_state,
+            &EmailConfig::from(config.clone()),
+        )
+        .await
+        {
             Ok(_) => "🖼️ Wallpaper will soon be changed!".to_string(),
             Err(err) => format!("Failed to process image: {}", err),
         }

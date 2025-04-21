@@ -10,12 +10,27 @@ pub struct WallpaperRecord {
 }
 
 #[server]
-pub async fn get_current_wallpaper_filename() -> Result<Option<String>, ServerFnError> {
+pub async fn get_current_wallpaper() -> Result<Option<WallpaperRecord>, ServerFnError<String>> {
     use remote_bot_shared::state::AppState;
+    use sqlx::SqlitePool;
     use std::sync::Arc;
-    let app_state = use_context::<Arc<AppState>>().expect("Missing AppState");
-    let current = app_state.current_wallpaper_filename.lock().await;
-    Ok(current.clone())
+
+    let state: Arc<AppState> = use_context().expect("Missing AppState");
+    let pool: SqlitePool = state.pool.clone();
+
+    let result = sqlx::query_as!(
+        WallpaperRecord,
+        r#"
+        SELECT id, name, path, set_by, created_at as "created_at!: String"
+        FROM wallpapers
+        ORDER BY created_at DESC
+        LIMIT 1
+        "#,
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+    Ok(result)
 }
 
 #[server]
@@ -33,7 +48,7 @@ pub async fn get_wallpapers(
     let limit = per_page as i64;
     let offset = (page.saturating_sub(1) * per_page) as i64;
 
-    let recs = sqlx::query_as!(
+    let result = sqlx::query_as!(
         WallpaperRecord,
         r#"
         SELECT id, name, path, set_by, created_at as "created_at!: String"
@@ -48,5 +63,5 @@ pub async fn get_wallpapers(
     .await
     .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    Ok(recs)
+    Ok(result)
 }

@@ -1,13 +1,14 @@
-use crate::configuration::Config;
-use crate::constants;
-use std::path::PathBuf;
-
 use remote_bot_shared::state::AppState;
 use serenity::builder::{CreateCommand, CreateCommandOption};
 use serenity::model::application::{
     CommandInteraction, CommandOptionType, ResolvedOption, ResolvedValue,
 };
+use std::path::PathBuf;
 
+use crate::configuration::Config;
+use crate::constants;
+
+use super::util::email::EmailConfig;
 use super::util::image::handle_set_wallpaper_from_url;
 
 pub async fn run(command: &CommandInteraction, config: &Config, app_state: &AppState) -> String {
@@ -30,7 +31,7 @@ pub async fn run(command: &CommandInteraction, config: &Config, app_state: &AppS
                 wallpaper_dir,
                 &set_by,
                 app_state,
-                config,
+                &EmailConfig::from(config.clone()),
             )
             .await
             {

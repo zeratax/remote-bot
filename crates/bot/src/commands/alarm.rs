@@ -1,8 +1,4 @@
-use crate::commands::util::email;
-use crate::configuration::Config;
-use crate::constants;
-
-use chrono::{Duration as ChronoDuration, Utc};
+use chrono::{Duration, Utc};
 use colored::*;
 use serenity::all::{ResolvedOption, ResolvedValue};
 use serenity::builder::{CreateCommand, CreateCommandOption};
@@ -10,6 +6,10 @@ use serenity::model::application::CommandInteraction;
 use serenity::model::prelude::CommandOptionType;
 use std::path::Path;
 use tokio::fs;
+
+use crate::commands::util::email::{self, EmailConfig};
+use crate::configuration::Config;
+use crate::constants;
 
 pub async fn run(command: &CommandInteraction, config: &Config) -> String {
     let options = &command.data.options();
@@ -25,8 +25,8 @@ pub async fn run(command: &CommandInteraction, config: &Config) -> String {
     ) = (options.get(0), options.get(1))
     {
         let duration = match *unit {
-            "min" | "minutes" => ChronoDuration::minutes(*amount),
-            "hours" => ChronoDuration::hours(*amount),
+            "min" | "minutes" => Duration::minutes(*amount),
+            "hours" => Duration::hours(*amount),
             _ => return "Invalid time unit! Use 'min' or 'hours'.".to_string(),
         };
 
@@ -41,7 +41,9 @@ pub async fn run(command: &CommandInteraction, config: &Config) -> String {
         let subject = "Alarm Created";
         let body = format!("New alarm from {}!", username);
         let sender = "alarm";
-        if let Err(e) = email::send_email(config, &subject, &body, &sender).await {
+        if let Err(e) =
+            email::send_email(&EmailConfig::from(config.clone()), &subject, &body, &sender).await
+        {
             return format!("Error sending email: {}", e);
         }
 

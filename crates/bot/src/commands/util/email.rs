@@ -1,9 +1,30 @@
-use crate::configuration::Config;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
+use crate::configuration::Config;
+
+pub struct EmailConfig {
+    smtp_username: String,
+    smtp_password: String,
+    smtp_server: String,
+    sender_domain: String,
+    recipient_email: String,
+}
+
+impl From<Config> for EmailConfig {
+    fn from(config: Config) -> Self {
+        EmailConfig {
+            smtp_username: config.smtp_username,
+            smtp_password: config.smtp_password,
+            smtp_server: config.smtp_server,
+            sender_domain: config.sender_domain,
+            recipient_email: config.recipient_email,
+        }
+    }
+}
+
 pub async fn send_email(
-    config: &Config,
+    config: &EmailConfig,
     subject: &str,
     body: &str,
     sender: &str,

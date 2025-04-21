@@ -7,11 +7,12 @@ members = [
     "crates/bot"]
 resolver = "2"
 
-# need to be applied only to wasm build
-[profile.release]
-codegen-units = 1
-lto = true
+[profile.wasm-release]
+inherits = "release"
 opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = "abort"
 
 [workspace.dependencies]
 leptos = { version = "0.7.8", default-features = false }
@@ -37,3 +38,6 @@ lib-package = "remote-bot-front"
 assets-dir = "assets"
 tailwind-input-file = "assets/styles/index.css"
 site-root = "target/site"
+
+[workspace.metadata.crane]
+name = "remote-bot"

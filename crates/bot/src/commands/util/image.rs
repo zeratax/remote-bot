@@ -1,12 +1,10 @@
+use remote_bot_shared::state::AppState;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use url::Url;
-
-use crate::commands::util::email::send_email;
-use crate::configuration::Config;
-use remote_bot_shared::state::AppState;
-
 use uuid::Uuid;
+
+use super::email::{EmailConfig, send_email};
 
 pub async fn download_and_save_image(url: &str, save_dir: &PathBuf) -> Result<PathBuf, String> {
     let parsed_url = Url::parse(url).map_err(|e| format!("Invalid URL: {}", e))?;
@@ -54,7 +52,7 @@ async fn handle_set_wallpaper_from_path(
     path: PathBuf,
     set_by: &str,
     app_state: &AppState,
-    config: &Config,
+    config: &EmailConfig,
 ) -> Result<(), String> {
     let name = path
         .file_name()
@@ -74,11 +72,6 @@ async fn handle_set_wallpaper_from_path(
     .await
     .map_err(|e| format!("Failed to insert wallpaper: {}", e))?;
 
-    {
-        let mut current = app_state.current_wallpaper_filename.lock().await;
-        *current = Some(path_str);
-    }
-
     let body = format!("Wallpaper set by {}: {}", set_by, name);
     send_email(config, "Wallpaper Update", &body, "wallpaper").await?;
 
@@ -90,7 +83,7 @@ pub async fn handle_set_wallpaper_from_url(
     save_dir: &PathBuf,
     set_by: &str,
     app_state: &AppState,
-    config: &Config,
+    config: &EmailConfig,
 ) -> Result<(), String> {
     let path = download_and_save_image(url, save_dir).await?;
     handle_set_wallpaper_from_path(path, set_by, app_state, config).await

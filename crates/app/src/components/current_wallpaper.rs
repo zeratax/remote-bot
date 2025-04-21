@@ -5,12 +5,12 @@ use leptos::{
     view,
 };
 
-use crate::api::wallpaper::get_current_wallpaper_filename;
+use crate::api::wallpaper::get_current_wallpaper;
 
 #[component]
 pub fn CurrentWallpaper() -> impl IntoView {
-    let filename = Resource::new(|| (), |_| get_current_wallpaper_filename());
-    let current_filename = move || {
+    let filename = Resource::new(|| (), |_| get_current_wallpaper());
+    let current_wallpaper = move || {
         filename
             .get()
             .and_then(|res| res.as_ref().ok().and_then(|s| s.clone()))
@@ -27,10 +27,10 @@ pub fn CurrentWallpaper() -> impl IntoView {
                         <p class="text-lg text-gray-500 italic">"No wallpaper has been set."</p>
                     }
                 >
-                    {move || match current_filename() {
-                        Some(filename) => view! {
+                    {move || match current_wallpaper() {
+                        Some(wallpaper) => view! {
                             <img
-                                src=format!("wallpapers/{filename}")
+                                src=format!("data/wallpapers/{}", wallpaper.path)
                                 alt="Current Wallpaper"
                                 class="max-w-full max-h-[80vh] rounded-2xl shadow-xl object-cover"
                             />
