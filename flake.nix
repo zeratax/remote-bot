@@ -75,7 +75,7 @@
             "Cargo.lock"
             "Cargo.toml"
             ".rs"
-            "*.css"
+            ".css"
           ];
 
           cargoHash = "sha256-WALecSBjaVb0hteUgUGYYSbt1cKCLgke8WaNRIH4tiM=";
