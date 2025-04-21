@@ -53,11 +53,11 @@ async fn main() -> std::io::Result<()> {
 
         App::new()
             .leptos_routes_with_context(
-                generate_route_list(remote_bot_app::App), 
+                generate_route_list(remote_bot_app::App),
                 {
                     let state = leptos_app_state_clone.clone();
                     move || provide_context(state.clone())
-                }, 
+                },
                 move || {
                     let leptos_options = leptos_options.clone();
                     view! {
@@ -77,8 +77,8 @@ async fn main() -> std::io::Result<()> {
                     }
                 }
             )
+            .service(Files::new("/data", "data").show_files_listing())
             .service(Files::new("/", &*site_root))
-            .service(Files::new("/data", "data"))
             .wrap(Compress::default())
     })
     .bind(&bind_addr)?

@@ -5,13 +5,12 @@ use leptos::{
     prelude::{ClassAttribute, Effect, ElementChild, Get, OnAttribute, Signal, document},
     view,
 };
-use leptos_use::{UseCookieOptions, use_cookie_with_options, use_preferred_dark};
+use leptos_use::{use_cookie, use_preferred_dark};
 use reactive_graph::traits::Set;
 
 #[component]
 pub fn DarkModeToggle() -> impl IntoView {
-    let (cookie, set_cookie) =
-        use_cookie_with_options::<bool, JsonSerdeCodec>("dark_mode", UseCookieOptions::default());
+    let (cookie, set_cookie) = use_cookie::<bool, JsonSerdeCodec>("dark_mode");
 
     let system_pref = use_preferred_dark();
     let resolved = Signal::derive(move || cookie.get().unwrap_or_else(|| system_pref.get()));
