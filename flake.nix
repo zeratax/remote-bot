@@ -76,11 +76,15 @@
             "Cargo.toml"
             ".rs"
             ".css"
+            ".sql"
           ];
 
           cargoHash = "sha256-WALecSBjaVb0hteUgUGYYSbt1cKCLgke8WaNRIH4tiM=";
 
           buildPhase = ''
+            export DATABASE_URL=sqlite://wallpapers.db
+            touch wallpapers.db
+            sqlx migrate run
             cargo leptos build --release
           '';
 
@@ -91,6 +95,7 @@
             pkgs.lld
             pkgs.binaryen
             pkgs.tailwindcss
+            pkgs.sqlx-cli
           ];
           buildInputs = [pkgs.openssl.dev];
 
