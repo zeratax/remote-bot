@@ -21,7 +21,7 @@ use {
 
 use serde::{Deserialize, Serialize};
 
-const GAME_UPDATE_INTERVAL: u32 = 60000;
+const GAME_UPDATE_INTERVAL: u32 = 3600000;
 const ANIMATION_DURATION: u32 = 500;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -149,7 +149,7 @@ pub fn DebtGame() -> impl IntoView {
             "debt_game_state",
             UseStorageOptions::default()
                 .delay_during_hydration(true)
-                .initial_value(None), // Initial value for SSR is None
+                .initial_value(None),
         );
 
     let initial_derived_state = stored_state
