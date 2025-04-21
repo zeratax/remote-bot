@@ -226,9 +226,8 @@
             home = workingDir;
             createHome = true;
             isSystemUser = true;
-            uid = lib.getAttrFromPath ["remote-bot" "uid"] config.users.users // 990;
           };
-          users.groups.remote-bot = {gid = lib.getAttrFromPath ["remote-bot" "gid"] config.users.groups // 990;};
+          users.groups.remote-bot = {};
 
           systemd.services.remote-bot = {
             description = "Remote Bot Service";
