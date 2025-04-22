@@ -39,6 +39,7 @@
         fileset = lib.fileset.unions [
           ./assets
           ./migrations
+          ./tailwind.config.js
           (craneLib.fileset.commonCargoSources unfilteredRoot)
         ];
       };
