@@ -12,10 +12,11 @@ use leptos_use::storage::{UseStorageOptions, use_local_storage_with_options};
 
 #[cfg(feature = "hydrate")]
 use {
-    gloo_timers::callback::Timeout,
+    gloo_timers::callback::{Interval, Timeout},
     js_sys,
-    leptos::prelude::Update,
-    wasm_bindgen::{JsCast, closure::Closure},
+    leptos::prelude::{Update, on_cleanup},
+    send_wrapper::SendWrapper,
+    wasm_bindgen::JsCast,
     web_sys,
 };
 
@@ -246,14 +247,14 @@ pub fn DebtGame() -> impl IntoView {
     let debt_display_ref = NodeRef::<html::Div>::new();
 
     #[cfg(feature = "hydrate")]
-    let send_state_update = move || {
+    let send_state_update = move |last_update: u64| {
         let current_state = GameState {
             debt: debt.get_untracked(),
             goal: goal.get_untracked(),
             minimum: minimum.get_untracked(),
             interest_rate: interest_rate.get_untracked(),
             penalty_rate: penalty_rate.get_untracked(),
-            last_update: current_timestamp(),
+            last_update,
             counter: counter.get_untracked(),
             win_enabled: win_enabled.get_untracked(),
             update_interval: update_interval.get_untracked(),
@@ -265,10 +266,10 @@ pub fn DebtGame() -> impl IntoView {
     #[cfg(feature = "hydrate")]
     let animate_counter_click = move || {
         log!("Animating counter click");
-        if let Some(btn) = counter_btn_ref.get() {
+        if let Some(btn) = counter_btn_ref.get_untracked() {
             let _ = btn.class_list().add_1("scale-95");
             let handle = Timeout::new(100, move || {
-                if let Some(b) = counter_btn_ref.get() {
+                if let Some(b) = counter_btn_ref.get_untracked() {
                     let _ = b.class_list().remove_1("scale-95");
                 }
             });
@@ -303,7 +304,7 @@ pub fn DebtGame() -> impl IntoView {
                     increased_debt
                 ),
             );
-            send_state_update();
+            send_state_update(current_timestamp());
         }
     };
 
@@ -336,110 +337,100 @@ pub fn DebtGame() -> impl IntoView {
                 log!(
                     "Element refs are available, setting up update interval Effect body (runs client-side once)"
                 );
-                if let Some(win) = web_sys::window() {
-                    let stored_state_clone = stored_state.clone();
-                    let set_time_until_update_clone = set_time_until_update.clone();
-                    let update_interval_clone = update_interval.clone();
-                    let update_callback = Closure::wrap(Box::new(move || {
-                        let last_update_from_storage = stored_state_clone
-                            .get_untracked()
-                            .map_or(0, |state| state.last_update);
-                        let now = current_timestamp();
-                        let elapsed_secs = now.saturating_sub(last_update_from_storage);
-                        let current_update_interval = update_interval_clone.get_untracked();
-                        let total_update_interval_secs = current_update_interval as u64 / 1000;
+                let stored_state_clone = stored_state.clone();
+                let set_time_until_update_clone = set_time_until_update.clone();
+                let update_interval_clone = update_interval.clone();
+                let update_callback = move || {
+                    let last_update_from_storage = stored_state_clone
+                        .get_untracked()
+                        .map_or(0, |state| state.last_update);
+                    let now = current_timestamp();
+                    let elapsed_secs = now.saturating_sub(last_update_from_storage);
+                    let current_update_interval = update_interval_clone.get_untracked();
+                    let total_update_interval_secs = current_update_interval as u64 / 1000;
 
-                        if elapsed_secs >= total_update_interval_secs {
-                            log!(
-                                "Update interval reached (elapsed {}s), applying interest.",
-                                elapsed_secs
-                            );
-                            log!("Apply interest logic called");
-                            if is_setup.get_untracked() || debt.get_untracked() <= 0.0 {
-                                log!("Apply interest skipped (setup or debt paid)");
-                                return;
-                            }
-
-                            let current_minimum = minimum.get_untracked();
-                            let current_interest = interest_rate.get_untracked();
-                            let current_penalty = penalty_rate.get_untracked();
-                            let current_counter = counter.get_untracked();
-                            let current_debt = debt.get_untracked();
-
-                            let interest_amount = current_debt * current_interest;
-                            let debt_after_interest = current_debt + interest_amount;
-                            set_debt.set(debt_after_interest);
-                            log!("Applied interest: {:.2}", interest_amount);
-
-                            let mut final_debt = debt_after_interest;
-                            let mut notification_body = format!(
-                                "Regular interest: {}%. Current debt: {:.2}",
-                                (current_interest * 100.0).round() as u32,
-                                debt_after_interest
-                            );
-                            let mut notification_title = "Interest Applied";
-
-                            if current_counter < current_minimum {
-                                let penalty_amount = debt_after_interest * current_penalty;
-                                final_debt += penalty_amount;
-                                set_debt.set(final_debt);
-                                log!("Applied penalty: {:.2}", penalty_amount);
-                                notification_title = "Penalty Applied!";
-                                notification_body = format!(
-                                    "You didn't reach the minimum of {}. Penalty: {}%. Current debt: {:.2}",
-                                    current_minimum,
-                                    (current_penalty * 100.0).round() as u32,
-                                    final_debt
-                                );
-                            } else {
-                                log!("Minimum met, no penalty.");
-                            }
-
-                            show_notification(notification_title, &notification_body);
-
-                            set_counter.set(0);
-
-                            // TODO: combine penalty login in one function
-                            let game_constants = &game_options::GAME_CONSTANTS;
-                            let min_idx = (js_sys::Math::random()
-                                * game_constants.minimum_options.len() as f64)
-                                .floor() as usize;
-                            let int_idx = (js_sys::Math::random()
-                                * game_constants.interest_options.len() as f64)
-                                .floor() as usize;
-                            let pen_idx = (js_sys::Math::random()
-                                * game_constants.penalty_options.len() as f64)
-                                .floor() as usize;
-
-                            set_minimum.set(game_constants.minimum_options[min_idx]);
-                            set_interest_rate.set(game_constants.interest_options[int_idx]);
-                            set_penalty_rate.set(game_constants.penalty_options[pen_idx]);
-
-                            set_animation_active.set(true);
-                            let handle = Timeout::new(ANIMATION_DURATION, move || {
-                                set_animation_active.set(false);
-                            });
-                            handle.forget();
-                            log!("Parameters randomized.");
-                            send_state_update();
-                        } else {
-                            let remaining = total_update_interval_secs - elapsed_secs;
-                            set_time_until_update_clone.set(remaining as i32);
-                            log!("Time until next update: {}s", remaining);
+                    if elapsed_secs >= total_update_interval_secs {
+                        log!(
+                            "Update interval reached (elapsed {}s), applying interest.",
+                            elapsed_secs
+                        );
+                        log!("Apply interest logic called");
+                        if is_setup.get_untracked() || debt.get_untracked() <= 0.0 {
+                            log!("Apply interest skipped (setup or debt paid)");
+                            return;
                         }
-                    }) as Box<dyn Fn()>);
 
-                    let _ = win
-                        .set_interval_with_callback_and_timeout_and_arguments_0(
-                            update_callback.as_ref().unchecked_ref(),
-                            1000,
-                        )
-                        .expect("Failed to set interval");
+                        let current_minimum = minimum.get_untracked();
+                        let current_interest = interest_rate.get_untracked();
+                        let current_penalty = penalty_rate.get_untracked();
+                        let current_counter = counter.get_untracked();
+                        let current_debt = debt.get_untracked();
 
-                    update_callback.forget();
-                } else {
-                    log!("Window not available for setting interval");
-                }
+                        let interest_amount = current_debt * current_interest;
+                        let debt_after_interest = current_debt + interest_amount;
+                        set_debt.set(debt_after_interest);
+                        log!("Applied interest: {:.2}", interest_amount);
+
+                        let mut final_debt = debt_after_interest;
+                        let mut notification_body = format!(
+                            "Regular interest: {}%. Current debt: {:.2}",
+                            (current_interest * 100.0).round() as u32,
+                            debt_after_interest
+                        );
+                        let mut notification_title = "Interest Applied";
+
+                        if current_counter < current_minimum {
+                            let penalty_amount = debt_after_interest * current_penalty;
+                            final_debt += penalty_amount;
+                            set_debt.set(final_debt);
+                            log!("Applied penalty: {:.2}", penalty_amount);
+                            notification_title = "Penalty Applied!";
+                            notification_body = format!(
+                                "You didn't reach the minimum of {}. Penalty: {}%. Current debt: {:.2}",
+                                current_minimum,
+                                (current_penalty * 100.0).round() as u32,
+                                final_debt
+                            );
+                        } else {
+                            log!("Minimum met, no penalty.");
+                        }
+
+                        show_notification(notification_title, &notification_body);
+
+                        set_counter.set(0);
+
+                        // TODO: combine penalty login in one function
+                        let game_constants = &game_options::GAME_CONSTANTS;
+                        let min_idx = (js_sys::Math::random()
+                            * game_constants.minimum_options.len() as f64)
+                            .floor() as usize;
+                        let int_idx = (js_sys::Math::random()
+                            * game_constants.interest_options.len() as f64)
+                            .floor() as usize;
+                        let pen_idx = (js_sys::Math::random()
+                            * game_constants.penalty_options.len() as f64)
+                            .floor() as usize;
+
+                        set_minimum.set(game_constants.minimum_options[min_idx]);
+                        set_interest_rate.set(game_constants.interest_options[int_idx]);
+                        set_penalty_rate.set(game_constants.penalty_options[pen_idx]);
+
+                        set_animation_active.set(true);
+                        let handle = Timeout::new(ANIMATION_DURATION, move || {
+                            set_animation_active.set(false);
+                        });
+                        handle.forget();
+                        log!("Parameters randomized.");
+                        send_state_update(current_timestamp());
+                    } else {
+                        let remaining = total_update_interval_secs - elapsed_secs;
+                        set_time_until_update_clone.set(remaining as i32);
+                        log!("Time until next update: {}s", remaining);
+                    }
+                };
+
+                let interval = SendWrapper::new(Interval::new(1_000, update_callback));
+                on_cleanup(move || drop(interval));
             }
         }
     });
@@ -611,7 +602,7 @@ pub fn DebtGame() -> impl IntoView {
             });
             handle.forget();
             log!("Parameters randomized.");
-            send_state_update();
+            send_state_update(current_timestamp());
         }
     };
 
@@ -629,7 +620,11 @@ pub fn DebtGame() -> impl IntoView {
                 }
 
                 animate_counter_click();
-                send_state_update();
+                let stored_state_clone = stored_state.clone();
+                let last_update_from_storage = stored_state_clone
+                    .get_untracked()
+                    .map_or(0, |state| state.last_update);
+                send_state_update(last_update_from_storage);
             } else {
                 log!(
                     "Increment click ignored: is_setup={}, debt={}",
@@ -691,9 +686,8 @@ pub fn DebtGame() -> impl IntoView {
                                     <input
                                         id="goal-input"
                                         type="number"
-                                        min="100"
+                                        min="10"
                                         max="10000"
-                                        step="100"
                                         prop:value=new_goal.get()
                                         on:input=move |ev| {
                                             let value = event_target_value(&ev).parse::<f64>().unwrap_or(1000.0);
