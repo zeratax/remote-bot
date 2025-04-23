@@ -7,10 +7,9 @@ edition = "2024"
 remote-bot-app = { path = "../app", default-features = false, features = ["ssr"] }
 remote-bot-discord = { path = "../bot" }
 remote-bot-shared = { path = "../shared" }
-leptos = { workspace = true, features = ["ssr"] }
+leptos = { workspace = true, features = ["ssr", "nightly"] }
 leptos_meta = { workspace = true, features = ["ssr"] }
-leptos_router = { workspace = true, features = ["ssr"] }
-leptos_dom = { workspace = true, features = [] }
+leptos_router = { workspace = true, features = ["ssr", "nightly"] }
 leptos_actix.workspace = true
 sqlx = { workspace = true }
 tokio = { workspace = true }
@@ -20,7 +19,6 @@ actix-web = "4"
 dotenvy = "0.15"
 futures = "0.3"
 reqwest = "0.12"
-
 actix = "0.13"
 actix-web-actors = "4.2"
 serde = { version = "1.0", features = ["derive"] }

@@ -4,11 +4,11 @@ use config::Config as AppConfig;
 use leptos::{
     config::get_config_from_env,
     hydration::{AutoReload, HydrationScripts},
+    logging::log,
     prelude::{ElementChild, GlobalAttributes, provide_context},
     view,
 };
 use leptos_actix::{LeptosRoutes, generate_route_list};
-use leptos_dom::log;
 use leptos_meta::MetaTags;
 use remote_bot_discord::{configuration::Config, run_bot};
 use remote_bot_shared::state::AppState as LeptosAppState;
