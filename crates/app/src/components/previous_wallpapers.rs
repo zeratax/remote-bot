@@ -77,7 +77,7 @@ pub fn PreviousWallpapers() -> impl IntoView {
                                             view! {
                                                 <div class="border rounded-lg overflow-hidden shadow">
                                                     <img
-                                                        src={format!("/wallpapers/{}", w.path)}
+                                                        src={format!("/data/wallpapers/{}", w.path)}
                                                         alt={w.name.clone()}
                                                         class="w-full h-auto object-contain"
                                                     />
