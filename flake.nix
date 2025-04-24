@@ -31,7 +31,7 @@
       rustToolchain = (pkgs.rust-bin.fromRustupToolchainFile (self + /rust-toolchain.toml)).override {
         extensions = ["rust-src" "rust-analyzer" "clippy"];
       };
-      craneLib = crane.mkLib pkgs;
+      craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
       unfilteredRoot = ./.;
       src = lib.fileset.toSource {
