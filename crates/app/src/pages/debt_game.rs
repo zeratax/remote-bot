@@ -418,7 +418,7 @@ pub fn DebtGame() -> impl IntoView {
 
                     crate::util::notifications::show_notification(
                         "Bad Luck!",
-                        &format!("Your debt increased by ${:.2}", increased_amount),
+                        &format!("Your debt increased by {}", increased_amount.round()),
                     );
                 }
             } else {
@@ -461,7 +461,7 @@ pub fn DebtGame() -> impl IntoView {
                     {move || if is_setup.get() {
                         view! {
                             <div class="flex flex-col items-center space-y-6 py-4">
-                                <h2 class="text-3xl font-bold text-center mb-4">"Debt Challenge Game"</h2>
+                                <h2 class="text-3xl font-bold text-center mb-4">"Edging Challenge Game"</h2>
                                 <p class="text-gray-700 dark:text-gray-300 text-center max-w-md">
                                     "Set your debt goal and try to reduce it to zero before interests and penalties overwhelm you!"
                                 </p>
@@ -469,10 +469,10 @@ pub fn DebtGame() -> impl IntoView {
                                 <form class="w-full max-w-sm" on:submit=on_setup.clone()>
                                     <div class="mb-6">
                                         <label for="goal-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            "Set your initial debt:"
+                                            "Set your initial edging debt:"
                                         </label>
                                         <div class="flex items-center">
-                                            <span class="text-gray-600 dark:text-gray-400 mr-2 text-xl">"$"</span>
+                                            <span class="text-gray-600 dark:text-gray-400 mr-2 text-xl">"Edges"</span>
                                             <input
                                                 id="goal-input"
                                                 type="number"
@@ -548,11 +548,11 @@ pub fn DebtGame() -> impl IntoView {
                                 <div class="mt-6 text-sm text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-700/50 p-4 rounded-md">
                                     <h3 class="font-bold mb-2">"How to play:"</h3>
                                     <ul class="list-disc pl-5 space-y-1">
-                                        <li>"Reduce your debt to zero by clicking the counter button."</li>
+                                        <li>"Reduce your debt to zero by clicking the edge button."</li>
                                         <li>"Every cycle, interest is applied to your remaining debt."</li>
                                         <li>"You must increase your counter by at least the minimum value before each interest cycle."</li>
                                         <li>"Failure to reach the minimum results in a penalty interest rate."</li>
-                                        <li>"When you reach zero debt, you can roll for a chance to win or continue."</li>
+                                        <li>"When you reach zero debt, you can roll for a chance to cum or continue."</li>
                                     </ul>
                                 </div>
                             </div>
@@ -561,7 +561,7 @@ pub fn DebtGame() -> impl IntoView {
                         view! {
                             <div class="flex flex-col space-y-4">
                                 <div class="flex justify-between items-center mb-2">
-                                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">"Debt Challenge"</h2>
+                                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">"Edging Debt Challenge"</h2>
                                     <div class="bg-blue-500/70 dark:bg-blue-800/70 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
                                         "Next update: " {move || formatted_cycle.get()}
                                     </div>
@@ -578,11 +578,11 @@ pub fn DebtGame() -> impl IntoView {
                                 >
                                     <div class="text-sm text-gray-700 dark:text-gray-300 mb-1">"Remaining Debt:"</div>
                                     <div class={move || format!("text-4xl font-bold transition-colors duration-300 {}", debt_text_color_class.get())}>
-                                        {move || format!("${}", debt.get().round())}
+                                        {move || format!("{}", debt.get().round())}
                                     </div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                                        "Original goal: " {move || format!("${}", goal.get().round())}
-                                         " | Total Paid: " {move || format!("${}", total_paid.get().round())}
+                                        "Original Edging Goal: " {move || format!("{} Edges", goal.get().round())}
+                                         " | Total Edges: " {move || format!("{}", total_paid.get().round())}
                                     </div>
                                 </div>
 
@@ -612,7 +612,7 @@ pub fn DebtGame() -> impl IntoView {
 
                                 <div class="flex items-center justify-between bg-white/50 dark:bg-gray-700/50 rounded-lg p-4 backdrop-blur-sm">
                                     <div>
-                                        <div class="text-sm text-gray-700 dark:text-gray-300">"Current Counter:"</div>
+                                        <div class="text-sm text-gray-700 dark:text-gray-300">"Current Edges:"</div>
                                         <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                             {move || counter.get().to_string()}
                                             <span class="text-sm text-gray-600 dark:text-gray-400 ml-1">
@@ -626,7 +626,7 @@ pub fn DebtGame() -> impl IntoView {
                                         disabled=move || debt.get() <= 0.0 || is_won.get()
                                         on:click=on_click
                                     >
-                                        "Click to Reduce"
+                                        "Edge!"
                                     </button>
                                 </div>
 
@@ -641,7 +641,7 @@ pub fn DebtGame() -> impl IntoView {
                                             class="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out animate-pulse"
                                             on:click=on_roll
                                         >
-                                            "Roll For Your Fate!"
+                                            "Roll For a Chance To Cum!"
                                         </button>
                                     </div>
 
@@ -652,7 +652,7 @@ pub fn DebtGame() -> impl IntoView {
                                         }}
                                     >
                                         <div class="text-4xl font-bold text-green-600 dark:text-green-400 animate-bounce">
-                                            "YOU WON!"
+                                            "CUM!"
                                         </div>
                                     </div>
                                 </div>
