@@ -3029,7 +3029,6 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "rand 0.9.1",
- "reactive_graph",
  "remote-bot-shared",
  "send_wrapper",
  "serde",

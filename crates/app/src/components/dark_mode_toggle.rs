@@ -2,11 +2,10 @@ use codee::string::JsonSerdeCodec;
 use leptos::{
     IntoView, component,
     logging::log,
-    prelude::{ClassAttribute, Effect, ElementChild, Get, OnAttribute, Signal, document},
+    prelude::{ClassAttribute, Effect, ElementChild, Get, Set, OnAttribute, Signal, document},
     view,
 };
 use leptos_use::{use_cookie, use_preferred_dark};
-use reactive_graph::traits::Set;
 
 #[component]
 pub fn DarkModeToggle() -> impl IntoView {
