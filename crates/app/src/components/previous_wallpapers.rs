@@ -5,7 +5,7 @@ use leptos::{
     html::Div,
     prelude::{
         ClassAttribute, Effect, ElementChild, For, Get, IntoAny, NodeRef, NodeRefAttribute,
-        ReadSignal, Set, Suspense, Update, With, WriteSignal, signal, window,
+        ReadSignal, Set, Transition, Update, With, WriteSignal, signal, window,
     },
     server::Resource,
     view,
@@ -50,7 +50,7 @@ pub fn PreviousWallpapers() -> impl IntoView {
     view! {
         <div class="p-4 space-y-6">
             <h2 class="text-2xl font-bold">"All Wallpapers"</h2>
-            <Suspense fallback=move || view! {
+            <Transition fallback=move || view! {
                 <p class="text-center italic">"Loading…"</p>
             }>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -124,7 +124,7 @@ pub fn PreviousWallpapers() -> impl IntoView {
                         view! { <div node_ref=sentinel class="h-8"/> }.into_any()
                     }
                 }}
-            </Suspense>
+            </Transition>
         </div>
     }
 }

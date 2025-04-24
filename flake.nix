@@ -143,6 +143,7 @@
         workingDir = "/var/lib/remote-bot";
         runtimeDbPath = "${workingDir}/wallpapers.db";
         settingsFile = "${workingDir}/settings.toml";
+        debtImagesTargetDir = "${workingDir}/data/images/debt_game";
         cfg = config.services.remote-bot;
       in {
         options.services.remote-bot = {
@@ -161,6 +162,13 @@
             type = lib.types.port;
             default = 3000;
             description = "Port for the HTTP server.";
+          };
+          debtGameImages = lib.mkOption {
+            type = lib.types.listOf lib.types.path;
+            default = [];
+            description = ''
+              List of image files to copy to ${debtImagesTargetDir}
+            '';
           };
           settings = {
             discord_token = lib.mkOption {
@@ -274,8 +282,14 @@
               format = pkgs.formats.toml {};
               settingsWithOutNull = lib.filterAttrsRecursive (name: value: value != null) cfg.settings;
               config = format.generate "settings.toml" settingsWithOutNull;
+              copyImagesScript = lib.concatMapStringsSep "\n" (image: "cp -f ${image} ${debtImagesTargetDir}/") cfg.debtGameImages;
             in ''
               mkdir -p ${workingDir}
+              mkdir -p ${debtImagesTargetDir}
+              echo "Copying data files..."
+              ${copyImagesScript}
+              echo "finished!"
+
               ln -sf ${config} ${settingsFile}
               touch ${runtimeDbPath}
               echo "Starting ${name}-server service..."

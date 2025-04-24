@@ -15,31 +15,30 @@ reactive_graph = "0.1.8"
 serde = { workspace = true }
 sqlx = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
-
 wasm-bindgen = { version = "0.2", optional = true }
 js-sys = { version = "0.3", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Notification"] }
-
 gloo-timers = { version = "0.3.0", optional = true }
 serde_json = "1.0.140"
 send_wrapper = "0.6.0"
+rand = { version = "0.9.1", optional = true }
 
 [features]
 default = ["hydrate"]
 
 hydrate = [
+    "gloo-timers",
+    "js-sys",
     "leptos-use",
     "leptos-use/storage",
     "leptos-use/use_cookie",
-    "leptos-use/use_preferred_dark",
-    "leptos-use/use_intersection_observer",
     "leptos-use/use_document",
+    "leptos-use/use_intersection_observer",
+    "leptos-use/use_preferred_dark",
     "leptos/hydrate",
     "leptos/nightly",
     "wasm-bindgen",
-    "js-sys",
     "web-sys",
-    "gloo-timers",
 ]
 
 ssr = [
@@ -49,13 +48,14 @@ ssr = [
     "leptos-use/ssr",
     "leptos-use/storage",
     "leptos-use/use_cookie",
-    "leptos-use/use_preferred_dark",
     "leptos-use/use_intersection_observer",
-    "leptos/ssr",
+    "leptos-use/use_preferred_dark",
     "leptos/nightly",
+    "leptos/ssr",
     "leptos_meta/ssr",
-    "leptos_router/ssr",
     "leptos_router/nightly",
+    "leptos_router/ssr",
+    "rand",
     "remote-bot-shared",
     "sqlx",
     "tokio",

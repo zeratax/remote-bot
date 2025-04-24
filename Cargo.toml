@@ -18,7 +18,6 @@ panic = "abort"
 leptos = { version = "0.7.8", default-features = false, features = ["nightly"] }
 leptos_meta = { version = "0.7.8", default-features = false }
 leptos_router = { version = "0.7.8", default-features = false, features = ["nightly"] }
-leptos_dom = { version = "0.7.8", default-features = false }
 leptos_actix = { version = "0.7.8" }
 
 serde = { version = "1.0.219", features = ["derive"] }

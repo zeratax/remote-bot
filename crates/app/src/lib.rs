@@ -1,6 +1,7 @@
 pub mod api;
 pub mod components;
 pub mod pages;
+pub mod util;
 
 use components::dark_mode_toggle::DarkModeToggle;
 use leptos::{
@@ -13,7 +14,7 @@ use leptos_router::{
     components::{Route, Router, Routes},
     path,
 };
-use pages::{debt::DebtGame, history::History, home_page::HomePage, not_found::NotFound};
+use pages::{debt_game::DebtGame, history::History, home_page::HomePage, not_found::NotFound};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -36,7 +37,7 @@ pub fn App() -> impl IntoView {
                 </div>
             </header>
 
-            <main class="max-w-4xl mx-auto px-4 py-8">
+            <main class="max-w-4xl mx-auto">
                 <Router>
                     <Routes fallback=|| view! { <NotFound /> }>
                         <Route path=path!("/") view=|| view! { <HomePage /> } />
