@@ -86,6 +86,7 @@ impl EventHandler for Handler {
 
                     None
                 }
+                "alarm" => Some(commands::alarm::run(&command, &self.config).await),
                 _ => Some("not implemented :(".to_string()),
             };
 
