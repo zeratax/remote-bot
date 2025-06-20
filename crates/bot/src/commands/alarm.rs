@@ -1,15 +1,11 @@
 use chrono::{Duration, Utc};
-use colored::*;
 use serenity::all::{ResolvedOption, ResolvedValue};
 use serenity::builder::{CreateCommand, CreateCommandOption};
 use serenity::model::application::CommandInteraction;
 use serenity::model::prelude::CommandOptionType;
-use std::path::Path;
-use tokio::fs;
 
-use crate::commands::util::email::{self, EmailConfig};
+use crate::commands::util::email::{EmailConfig, send_email};
 use crate::configuration::Config;
-use crate::constants;
 
 pub async fn run(command: &CommandInteraction, config: &Config) -> String {
     let options = &command.data.options();
@@ -31,45 +27,21 @@ pub async fn run(command: &CommandInteraction, config: &Config) -> String {
         };
 
         let alarm_time = Utc::now().with_timezone(&config.timezone) + duration;
-
-        let path = Path::new(constants::ALARM_PATH);
-        if let Err(e) = write_to_file(path, alarm_time.format("%H:%M").to_string()).await {
-            return format!("Error saving alarm: {}", e);
-        }
+        let alarm_time_formatted = alarm_time.format("%H:%M");
 
         let username = &command.user.name;
         let subject = "Alarm Created";
-        let body = format!("New alarm from {}!", username);
+        let body = format!("Alarm set by {}: {}", username, alarm_time_formatted);
         let sender = "alarm";
         if let Err(e) =
-            email::send_email(&EmailConfig::from(config.clone()), &subject, &body, &sender).await
+            send_email(&EmailConfig::from(config.clone()), &subject, &body, &sender).await
         {
             return format!("Error sending email: {}", e);
         }
 
-        let alarm_time_formatted = alarm_time.format("%H:%M");
-        println!(
-            "{} set time to: {}",
-            username.green(),
-            alarm_time_formatted.to_string().cyan()
-        );
-
         return format!("⏰ Alarm set for localtime: {}", alarm_time_formatted);
     }
     "Invalid input! Please provide a valid amount and unit.".to_string()
-}
-
-async fn write_to_file(path: &Path, content: String) -> Result<(), String> {
-    if let Some(dir) = path.parent() {
-        if !fs::try_exists(dir).await.unwrap_or(false) {
-            fs::create_dir_all(dir)
-                .await
-                .map_err(|e| format!("Failed to create directory: {}", e))?;
-        }
-    }
-    fs::write(path, content)
-        .await
-        .map_err(|e| format!("Failed to write alarm to file: {}", e))
 }
 
 // Register the command
